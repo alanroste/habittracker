@@ -27,8 +27,8 @@ export default function App() {
     <Routes>
       <Route path="/onboarding" element={<Onboarding />} />
       <Route element={<Layout />}>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/todo" element={<Todo />} />
+        <Route path="/" element={<Todo />} />
+        <Route path="/me" element={<Dashboard />} />
         <Route path="/stats" element={<StatsPage />} />
         <Route path="/friends" element={<Friends />} />
         <Route path="/friends/:id" element={<FriendDetail />} />

@@ -9,7 +9,7 @@ import { Card, ErrorNote, Pct, Spinner } from '../components/ui'
 import DayGrid from '../components/DayGrid'
 import ReasonSheet from '../components/ReasonSheet'
 import CalendarStrip from '../components/CalendarStrip'
-import InstallBanner from '../components/InstallBanner'
+import CharacterCard, { LevelLadder, MilestoneShelf } from '../components/CharacterCard'
 import type { RowActions } from '../components/HabitRow'
 
 export default function Dashboard() {
@@ -48,21 +48,31 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-3">
-      <InstallBanner />
+      {s && (
+        <>
+          <div className="flex items-baseline justify-between px-1">
+            <h1 className="text-xl font-bold">{s.user.name}</h1>
+            <span className="text-xs text-ink-3">Day {s.day_number} of {s.days_total}</span>
+          </div>
+          <CharacterCard stats={s} />
+          <MilestoneShelf stats={s} />
+        </>
+      )}
+
       {s && (
         <Card className="p-4">
           <div className="flex items-start justify-between">
             <div>
-              <div className="text-xs text-ink-3">Hey {s.user.name}</div>
-              <div className="text-lg font-semibold">Day {s.day_number} <span className="text-ink-3">of {s.days_total}</span></div>
-            </div>
-            <div className="text-center">
               <Pct value={s.overall.pct} />
               <div className="text-xs text-ink-3">on track</div>
             </div>
-            <div className="text-right">
+            <div className="text-center">
               <div className="text-lg font-semibold tabular-nums">{s.days_logged}<span className="text-ink-3">/{s.days_elapsed}</span></div>
               <div className="text-xs text-ink-3">days logged</div>
+            </div>
+            <div className="text-right">
+              <div className="text-lg font-semibold tabular-nums">{s.days_left}</div>
+              <div className="text-xs text-ink-3">days left</div>
             </div>
           </div>
           <div className="mt-3">
@@ -73,7 +83,6 @@ export default function Dashboard() {
               {s.missed_days.length} day{s.missed_days.length > 1 ? 's' : ''} not fully logged. Tap to fill in {fmt(s.missed_days[s.missed_days.length - 1].date)}.
             </button>
           )}
-          <div className="mt-2 text-center text-xs text-ink-3">{s.days_left} days left · streak {s.streak.current}</div>
         </Card>
       )}
 
@@ -97,6 +106,8 @@ export default function Dashboard() {
       {day.data?.length === 0 && (
         <p className="text-center text-sm text-ink-3">No habits yet. <Link className="text-accent" to="/settings">Add some in Settings.</Link></p>
       )}
+
+      {s && <LevelLadder stats={s} />}
 
       <ReasonSheet
         habit={missing}

@@ -9,6 +9,7 @@ import { Button, Card, ErrorNote, Sheet, Spinner } from '../components/ui'
 import HabitRow, { type RowActions } from '../components/HabitRow'
 import { ClockIcon } from '../components/icons'
 import ReasonSheet from '../components/ReasonSheet'
+import InstallBanner from '../components/InstallBanner'
 
 /** Today's habits as a running order: Morning → Afternoon → Evening → Anytime. */
 export default function Todo() {
@@ -53,6 +54,7 @@ export default function Todo() {
 
   return (
     <div className="space-y-3">
+      <InstallBanner />
       <div>
         <h1 className="text-xl font-bold">To-do today</h1>
         <p className="text-sm text-ink-3">Your habits in the order you plan to do them.</p>

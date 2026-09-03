@@ -2,8 +2,8 @@ import { NavLink, Outlet } from 'react-router-dom'
 import { FriendsIcon, SettingsIcon, StatsIcon, TodayIcon, TodoIcon } from './icons'
 
 const tabs = [
-  { to: '/', label: 'Today', Icon: TodayIcon, end: true },
-  { to: '/todo', label: 'To-Do', Icon: TodoIcon, end: false },
+  { to: '/', label: 'To-Do', Icon: TodoIcon, end: true },
+  { to: '/me', label: 'Me', Icon: TodayIcon, end: false },
   { to: '/stats', label: 'Stats', Icon: StatsIcon, end: false },
   { to: '/friends', label: 'Friends', Icon: FriendsIcon, end: false },
   { to: '/settings', label: 'Settings', Icon: SettingsIcon, end: false },

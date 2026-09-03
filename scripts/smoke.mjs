@@ -148,9 +148,16 @@ for (let i = 0; i < 3; i++) { await page.getByRole('button', { name: /Next|Skip/
 await shot('04-onboarding-avoid'); await page.getByRole('button', { name: /Next|Skip/ }).click(); await page.waitForTimeout(200); await shot('05-onboarding-review')
 await page.getByRole('button', { name: 'Start my 70 days' }).click(); await page.waitForURL(base + '/'); await page.waitForTimeout(500)
 
-// 4. dashboard
+// 4. landing page is now the To-Do list
+await shot('06-todo-landing')
+expect(await page.getByRole('heading', { name: 'To-do today' }).isVisible(), 'to-do is the landing page')
+
+// 4a. account dashboard with the character
+await page.getByRole('link', { name: 'Me' }).click(); await page.waitForTimeout(500)
 await shot('06-dashboard')
-expect(await page.getByText('Day 7').isVisible(), 'day counter')
+expect(await page.getByText('Day 7 of 70').isVisible(), 'day counter')
+expect(await page.getByText('Streak milestones').isVisible(), 'milestone shelf')
+expect(await page.getByText('The ladder').isVisible(), 'level ladder')
 expect(await page.getByText('days logged').isVisible(), 'days logged')
 expect(await page.getByText("I'm a bum").first().isVisible(), 'reason shown on row')
 // mark Meditate missed → reason sheet → submit
@@ -166,7 +173,7 @@ expect(await page.getByText('Yesterday').isVisible(), 'yesterday label')
 await page.getByText('Back to today').click()
 
 // 4b. to-do tab
-await page.getByRole('link', { name: 'To-Do' }).click(); await page.waitForTimeout(400); await shot('07b-todo')
+await page.getByRole('link', { name: 'To-Do' }).click(); await page.waitForURL(base + '/'); await page.waitForTimeout(400); await shot('07b-todo')
 expect(await page.getByRole('heading', { name: 'To-do today' }).isVisible(), 'todo heading')
 expect(await page.getByText('MORNING').isVisible(), 'morning section')
 expect(await page.getByText('EVENING').isVisible(), 'evening section')
@@ -207,7 +214,7 @@ await page.getByRole('link', { name: 'Settings' }).click(); await page.waitForTi
 expect((await page.locator('input[readonly]').inputValue()).includes('/u/' + TOKEN), 'login link shown')
 
 // 8. desktop width dashboard
-await page.setViewportSize({ width: 1100, height: 900 }); await page.goto(base + '/'); await page.waitForTimeout(500); await shot('12-dashboard-desktop')
+await page.setViewportSize({ width: 1100, height: 900 }); await page.goto(base + '/me'); await page.waitForTimeout(600); await shot('12-dashboard-desktop')
 
 // 9. manifest + sw
 const man = await page.request.get(base + '/manifest.webmanifest'); expect(man.ok(), 'manifest served')
