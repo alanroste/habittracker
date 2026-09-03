@@ -55,6 +55,29 @@ export interface Stats {
   streak: { current: number; best: number }
   reasons: { date: string; habit: string; category: Category; reason: string }[]
 }
+export interface GroupCategoryTally extends Tally {
+  category: Category
+}
+export interface GroupUser {
+  id: string
+  name: string
+  onboarded: boolean
+  overall: Tally
+  categories: GroupCategoryTally[]
+}
+export interface GroupStats {
+  categories: GroupCategoryTally[]
+  users: GroupUser[]
+}
+export interface Excuse {
+  date: string
+  user_id: string
+  user_name: string
+  habit: string
+  category: Category
+  reason: string
+}
+
 export interface Friend extends User {
   pct: number
   hits: number

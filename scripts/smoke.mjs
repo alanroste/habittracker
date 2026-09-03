@@ -46,6 +46,39 @@ const STATS = {
     { date: '2026-08-29', habit: 'Read 20 pages', category: 'mind', reason: 'Too tired' },
   ],
 }
+const GROUP_STATS = {
+  categories: [
+    { category: 'health', hits: 15, misses: 1, unlogged: 1, pending: 3, pct: 88.2 },
+    { category: 'mind', hits: 9, misses: 6, unlogged: 3, pending: 0, pct: 50 },
+    { category: 'business', hits: 8, misses: 0, unlogged: 1, pending: 0, pct: 88.9 },
+    { category: 'avoid', hits: 4, misses: 1, unlogged: 0, pending: 2, pct: 80 },
+  ],
+  users: [
+    { id: 'u4', name: 'Alan', onboarded: true, overall: { hits: 22, misses: 3, unlogged: 3, pending: 4, pct: 78.6 },
+      categories: [
+        { category: 'health', hits: 8, misses: 0, unlogged: 1, pending: 2, pct: 88.9 },
+        { category: 'mind', hits: 9, misses: 3, unlogged: 1, pending: 0, pct: 69.2 },
+        { category: 'business', hits: 5, misses: 0, unlogged: 1, pending: 0, pct: 83.3 },
+      ] },
+    { id: 'u1', name: 'Marco', onboarded: true, overall: { hits: 27, misses: 1, unlogged: 0, pending: 0, pct: 96.4 },
+      categories: [
+        { category: 'health', hits: 7, misses: 1, unlogged: 0, pending: 1, pct: 87.5 },
+        { category: 'mind', hits: 0, misses: 3, unlogged: 2, pending: 0, pct: 0 },
+        { category: 'avoid', hits: 4, misses: 1, unlogged: 0, pending: 2, pct: 80 },
+      ] },
+    { id: 'u2', name: 'Dev', onboarded: true, overall: { hits: 20, misses: 6, unlogged: 2, pending: 0, pct: 71.4 },
+      categories: [
+        { category: 'business', hits: 3, misses: 0, unlogged: 0, pending: 0, pct: 100 },
+      ] },
+    { id: 'u3', name: 'Friend 3', onboarded: false, overall: { hits: 0, misses: 0, unlogged: 0, pending: 0, pct: 100 }, categories: [] },
+  ],
+}
+const GROUP_REASONS = [
+  { date: '2026-09-02', user_id: 'u4', user_name: 'Alan', habit: 'Read 20 pages', category: 'mind', reason: "I'm a bum" },
+  { date: '2026-09-01', user_id: 'u1', user_name: 'Marco', habit: 'Meditate', category: 'mind', reason: 'Forgot' },
+  { date: '2026-08-31', user_id: 'u2', user_name: 'Dev', habit: 'Cardio', category: 'health', reason: 'Too tired' },
+  { date: '2026-08-29', user_id: 'u4', user_name: 'Alan', habit: 'Meditate', category: 'mind', reason: 'No time' },
+]
 const FRIENDS = [
   { id: 'u1', name: 'Marco', timezone: 'UTC', started_on: '2026-08-27', challenge_days: 70, onboarded: true, pct: 96.4, hits: 27, misses: 1, unlogged: 0, day_number: 7, habit_count: 6 },
   { id: 'u2', name: 'Dev', timezone: 'UTC', started_on: '2026-08-27', challenge_days: 70, onboarded: true, pct: 71, hits: 20, misses: 6, unlogged: 2, day_number: 7, habit_count: 5 },
@@ -72,6 +105,8 @@ async function mock(route) {
     case 'day_view': return json(dayView)
     case 'stats': return json(body.p_user_id ? { ...STATS, user: { ...ME, id: 'u1', name: 'Marco' } } : STATS)
     case 'friends': return json(FRIENDS)
+    case 'group_stats': return json(GROUP_STATS)
+    case 'group_reasons': return json(GROUP_REASONS)
     default: return err('unknown fn ' + fn)
   }
 }
@@ -125,9 +160,19 @@ await page.getByRole('link', { name: 'Stats' }).click(); await page.waitForTimeo
 expect(await page.getByText('70-day map').isVisible(), 'heatmap')
 expect(await page.getByText('Excuses').isVisible(), 'excuses')
 
-// 6. friends
+// 6. friends: leaderboard, group, and I'm a bum tabs
 await page.getByRole('link', { name: 'Friends' }).click(); await page.waitForTimeout(400); await shot('09-friends')
 expect(await page.getByText('Marco').isVisible(), 'friend row')
+
+await page.getByRole('button', { name: 'Group' }).click(); await page.waitForTimeout(400); await shot('09b-friends-group')
+expect(await page.getByText('The group, combined').isVisible(), 'group combined section')
+expect(await page.getByText('ranked by on-track %').first().isVisible(), 'per-category ranking')
+
+await page.getByRole('button', { name: "I'm a Bum" }).click(); await page.waitForTimeout(400); await shot('09c-friends-bum')
+expect(await page.getByText("I'm a bum").first().isVisible(), 'excuse text shown')
+expect(await page.getByText('Marco').first().isVisible(), 'excuse author shown')
+
+await page.getByRole('button', { name: 'Leaderboard' }).click(); await page.waitForTimeout(300)
 await page.getByText('Marco').click(); await page.waitForTimeout(500); await shot('10-friend-detail')
 expect(await page.getByRole('heading', { name: 'Marco' }).isVisible(), 'friend detail')
 

@@ -1,6 +1,6 @@
 import { supabase } from './supabase'
 import { getToken } from './session'
-import type { Category, DayHabit, Frequency, Friend, Habit, LogStatus, Me, Stats } from '../types'
+import type { Category, DayHabit, Excuse, Frequency, Friend, GroupStats, Habit, LogStatus, Me, Stats } from '../types'
 
 async function rpc<T>(fn: string, args: Record<string, unknown> = {}, token = getToken()): Promise<T> {
   if (!token) throw new Error('No login token. Open your personal link.')
@@ -34,4 +34,6 @@ export const api = {
   dayView: (date: string, userId?: string) => rpc<DayHabit[]>('day_view', { p_date: date, p_user_id: userId ?? null }),
   stats: (userId?: string) => rpc<Stats>('stats', { p_user_id: userId ?? null }),
   friends: () => rpc<Friend[]>('friends'),
+  groupStats: () => rpc<GroupStats>('group_stats'),
+  groupReasons: () => rpc<Excuse[]>('group_reasons'),
 }

@@ -436,3 +436,73 @@ grant execute on function
   log_habit(text,uuid,date,log_status,text,int), clear_log(text,uuid,date),
   day_view(text,date,uuid), stats(text,uuid), friends(text)
 to anon;
+
+-- Added after initial launch: group-wide metrics and a shared "I'm a bum" excuses feed for the Friends page.
+
+create or replace function group_stats(p_token text) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare u users := _auth(p_token); result jsonb;
+begin
+  create temp table if not exists _gsi on commit drop as
+    select null::uuid as user_id, null::text as name, null::boolean as onboarded, *
+    from _score_items('00000000-0000-0000-0000-000000000000'::uuid) where false;
+  truncate _gsi;
+  insert into _gsi
+    select o.id, o.name, o.onboarded, s.*
+    from users o cross join lateral _score_items(o.id) s;
+
+  select jsonb_build_object(
+    'categories', coalesce((
+      select jsonb_agg(jsonb_build_object(
+               'category', category, 'hits', hits, 'misses', misses, 'unlogged', unlogged, 'pending', pending,
+               'pct', _pct(hits, misses, unlogged)) order by category)
+      from (
+        select category,
+               count(*) filter (where outcome = 'hit') hits,
+               count(*) filter (where outcome = 'miss') misses,
+               count(*) filter (where outcome = 'unlogged') unlogged,
+               count(*) filter (where outcome = 'pending') pending
+        from _gsi group by category
+      ) c
+    ), '[]'::jsonb),
+    'users', coalesce((
+      select jsonb_agg(jsonb_build_object(
+               'id', user_id, 'name', name, 'onboarded', onboarded, 'overall', ov, 'categories', cats) order by name)
+      from (
+        select user_id, name, onboarded,
+               jsonb_build_object('hits', sum(hits)::bigint, 'misses', sum(misses)::bigint, 'unlogged', sum(unlogged)::bigint, 'pending', sum(pending)::bigint,
+                                   'pct', _pct(sum(hits)::bigint, sum(misses)::bigint, sum(unlogged)::bigint)) as ov,
+               jsonb_agg(jsonb_build_object('category', category, 'hits', hits, 'misses', misses, 'unlogged', unlogged,
+                                             'pending', pending, 'pct', _pct(hits, misses, unlogged)) order by category) as cats
+        from (
+          select user_id, name, onboarded, category,
+                 count(*) filter (where outcome = 'hit') hits,
+                 count(*) filter (where outcome = 'miss') misses,
+                 count(*) filter (where outcome = 'unlogged') unlogged,
+                 count(*) filter (where outcome = 'pending') pending
+          from _gsi group by user_id, name, onboarded, category
+        ) pc
+        group by user_id, name, onboarded
+      ) u2
+    ), '[]'::jsonb)
+  ) into result;
+  return result;
+end $$;
+
+create or replace function group_reasons(p_token text) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare u users := _auth(p_token);
+begin
+  return coalesce((
+    select jsonb_agg(jsonb_build_object(
+             'date', l.log_date, 'user_id', o.id, 'user_name', o.name, 'habit', h.title,
+             'category', h.category, 'reason', l.reason)
+           order by l.log_date desc, l.updated_at desc)
+    from habit_logs l
+    join habits h on h.id = l.habit_id
+    join users o on o.id = l.user_id
+    where l.status = 'missed'
+  ), '[]'::jsonb);
+end $$;
+
+grant execute on function group_stats(text), group_reasons(text) to anon;
