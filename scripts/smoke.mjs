@@ -1,0 +1,148 @@
+// Browser smoke test with a mocked Supabase RPC layer (the sandbox cannot reach supabase.co).
+// Usage: node scripts/smoke.mjs <baseUrl> <outDir>
+import { chromium } from 'playwright'
+const [base = 'http://localhost:4173', out = 'shots'] = process.argv.slice(2)
+
+const TOKEN = 'f7f8c85f22984b998e9ca4f73b3ea4ae'
+const ME = { id: 'u4', name: 'Alan', timezone: 'America/New_York', started_on: '2026-08-27', challenge_days: 70, onboarded: true }
+const today = '2026-09-02'
+const habits = [
+  { id: 'h1', category: 'health', title: 'Supplements', frequency: 'daily', target_count: 1, sort_order: 0, starts_on: ME.started_on },
+  { id: 'h2', category: 'health', title: 'Gym', frequency: 'per_week', target_count: 4, sort_order: 1, starts_on: ME.started_on },
+  { id: 'h3', category: 'health', title: 'Cardio', frequency: 'per_week', target_count: 3, sort_order: 2, starts_on: ME.started_on },
+  { id: 'h4', category: 'mind', title: 'Read 20 pages', frequency: 'daily', target_count: 1, sort_order: 0, starts_on: ME.started_on },
+  { id: 'h5', category: 'mind', title: 'Meditate', frequency: 'daily', target_count: 1, sort_order: 1, starts_on: ME.started_on },
+  { id: 'h6', category: 'business', title: '10 cold emails', frequency: 'daily', target_count: 1, sort_order: 0, starts_on: ME.started_on },
+  { id: 'h7', category: 'avoid', title: 'League games', frequency: 'limit_week', target_count: 5, sort_order: 0, starts_on: ME.started_on },
+  { id: 'h8', category: 'avoid', title: 'Cheat meals', frequency: 'limit_week', target_count: 1, sort_order: 1, starts_on: ME.started_on },
+]
+const dayView = habits.map((h, i) => ({
+  ...h,
+  log: i === 0 ? { status: 'done', count: 1, reason: null } : i === 3 ? { status: 'missed', count: 0, reason: "I'm a bum" } : i === 6 ? { status: 'done', count: 2, reason: null } : null,
+  week_count: h.frequency === 'per_week' ? 2 : h.frequency === 'limit_week' ? (i === 6 ? 6 : 0) : i === 0 ? 1 : 0,
+}))
+const daily_history = ['2026-08-27','2026-08-28','2026-08-29','2026-08-30','2026-08-31','2026-09-01','2026-09-02'].map((date, i) => (
+  i === 2 ? { date, hits: 2, misses: 2, unlogged: 0, pending: 0 }
+  : i === 4 ? { date, hits: 1, misses: 0, unlogged: 3, pending: 0 }
+  : i === 6 ? { date, hits: 1, misses: 1, unlogged: 0, pending: 2 }
+  : { date, hits: 4, misses: 0, unlogged: 0, pending: 0 }))
+const tally = (hits, misses, unlogged, pending) => ({ hits, misses, unlogged, pending, pct: hits + misses + unlogged ? Math.round(1000 * hits / (hits + misses + unlogged)) / 10 : 100 })
+const STATS = {
+  user: ME, today, day_number: 7, days_total: 70, days_left: 63, end_date: '2026-11-04',
+  days_logged: 5, days_elapsed: 7,
+  missed_days: [{ date: '2026-08-31', unlogged: 3 }],
+  overall: tally(22, 3, 3, 4),
+  categories: [
+    { category: 'health', ...tally(8, 0, 1, 2) }, { category: 'mind', ...tally(9, 3, 1, 0) },
+    { category: 'business', ...tally(5, 0, 1, 0) }, { category: 'avoid', ...tally(0, 0, 0, 2) },
+  ],
+  habits: habits.map((h, i) => ({ ...h, ...tally(i === 3 ? 4 : 6, i === 3 ? 2 : 0, i === 4 ? 1 : 0, h.frequency === 'daily' ? 0 : 1), week_count: 2 })),
+  daily_history,
+  weekly_history: [{ week_start: '2026-08-24', hits: 3, misses: 1, pending: 0 }, { week_start: '2026-08-31', hits: 0, misses: 0, pending: 4 }],
+  streak: { current: 0, best: 3 },
+  reasons: [
+    { date: '2026-09-02', habit: 'Read 20 pages', category: 'mind', reason: "I'm a bum" },
+    { date: '2026-08-29', habit: 'Meditate', category: 'mind', reason: 'Forgot' },
+    { date: '2026-08-29', habit: 'Read 20 pages', category: 'mind', reason: 'Too tired' },
+  ],
+}
+const FRIENDS = [
+  { id: 'u1', name: 'Marco', timezone: 'UTC', started_on: '2026-08-27', challenge_days: 70, onboarded: true, pct: 96.4, hits: 27, misses: 1, unlogged: 0, day_number: 7, habit_count: 6 },
+  { id: 'u2', name: 'Dev', timezone: 'UTC', started_on: '2026-08-27', challenge_days: 70, onboarded: true, pct: 71, hits: 20, misses: 6, unlogged: 2, day_number: 7, habit_count: 5 },
+  { id: 'u3', name: 'Friend 3', timezone: 'UTC', started_on: '2026-09-03', challenge_days: 70, onboarded: false, pct: 100, hits: 0, misses: 0, unlogged: 0, day_number: 1, habit_count: 0 },
+]
+
+let onboarded = true
+const calls = []
+async function mock(route) {
+  const url = route.request().url()
+  const fn = url.split('/rpc/')[1]
+  const body = route.request().postDataJSON?.() ?? {}
+  calls.push(fn)
+  const json = (data) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(data) })
+  const err = (message) => route.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ message, code: 'P0001' }) })
+  switch (fn) {
+    case 'me': return body.p_token === TOKEN ? json({ ...ME, onboarded, today, login_token: TOKEN }) : err('invalid token')
+    case 'update_profile': return json({ ...ME, name: body.p_name, timezone: body.p_timezone, onboarded, today, login_token: TOKEN })
+    case 'complete_onboarding': onboarded = true; return json({ ...ME, onboarded, today, login_token: TOKEN })
+    case 'my_habits': return json(habits)
+    case 'upsert_habit': return json({ id: 'new', category: body.p_category, title: body.p_title, frequency: body.p_frequency, target_count: body.p_target_count, sort_order: 0, starts_on: today })
+    case 'delete_habit': case 'clear_log': return json(null)
+    case 'log_habit': return body.p_status === 'missed' && !body.p_reason ? err('reason required') : json({ ok: true })
+    case 'day_view': return json(dayView)
+    case 'stats': return json(body.p_user_id ? { ...STATS, user: { ...ME, id: 'u1', name: 'Marco' } } : STATS)
+    case 'friends': return json(FRIENDS)
+    default: return err('unknown fn ' + fn)
+  }
+}
+
+const b = await chromium.launch({ executablePath: process.env.CHROME_BIN || '/opt/pw-browsers/chromium' })
+const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true })
+await ctx.route('**/rest/v1/rpc/**', mock)
+const page = await ctx.newPage()
+const errors = []
+page.on('pageerror', (e) => errors.push(String(e)))
+page.on('console', (m) => { if (m.type() === 'error' && !/status of 400/.test(m.text())) errors.push(m.text()) })
+const shot = (n) => page.screenshot({ path: `${out}/${n}.png`, fullPage: true })
+const expect = (cond, msg) => { if (!cond) { errors.push('ASSERT: ' + msg) } }
+
+// 1. no token
+await page.goto(base + '/'); await page.waitForTimeout(300); await shot('00-no-token')
+expect(await page.getByText('Open your personal link').isVisible(), 'no-token screen')
+
+// 2. bad link
+await page.goto(base + '/u/badtoken'); await page.waitForTimeout(500); await shot('01-bad-link')
+expect(await page.getByText('not valid').isVisible(), 'bad link message')
+
+// 3. onboarding (not onboarded yet)
+onboarded = false
+await page.goto(base + '/u/' + TOKEN); await page.waitForURL(base + '/onboarding'); await page.waitForTimeout(300); await shot('02-onboarding-name')
+await page.getByPlaceholder('Name').fill('Alan'); await page.getByRole('button', { name: 'Next' }).click(); await page.waitForTimeout(300); await shot('03-onboarding-health')
+await page.getByPlaceholder('e.g. Take supplements').fill('Creatine'); await page.getByRole('button', { name: 'Add' }).click(); await page.waitForTimeout(200)
+for (let i = 0; i < 3; i++) { await page.getByRole('button', { name: /Next|Skip/ }).click(); await page.waitForTimeout(200) }
+await shot('04-onboarding-avoid'); await page.getByRole('button', { name: /Next|Skip/ }).click(); await page.waitForTimeout(200); await shot('05-onboarding-review')
+await page.getByRole('button', { name: 'Start my 70 days' }).click(); await page.waitForURL(base + '/'); await page.waitForTimeout(500)
+
+// 4. dashboard
+await shot('06-dashboard')
+expect(await page.getByText('Day 7').isVisible(), 'day counter')
+expect(await page.getByText('days logged').isVisible(), 'days logged')
+expect(await page.getByText("I'm a bum").first().isVisible(), 'reason shown on row')
+// mark Meditate missed → reason sheet → submit
+const meditate = page.locator('div', { hasText: /^Meditate/ }).locator('..').getByRole('button', { name: 'Mark missed' }).first()
+await meditate.click(); await page.waitForTimeout(200); await page.screenshot({ path: `${out}/07-reason-sheet.png` })
+await page.getByRole('button', { name: 'Too tired' }).click(); await page.getByRole('button', { name: 'Log the miss' }).click(); await page.waitForTimeout(300)
+expect(calls.includes('log_habit'), 'log_habit called')
+// limit counter
+await page.getByRole('button', { name: 'Add one' }).first().click(); await page.waitForTimeout(200)
+// previous day
+await page.getByRole('button', { name: 'Previous day' }).click(); await page.waitForTimeout(200)
+expect(await page.getByText('Yesterday').isVisible(), 'yesterday label')
+await page.getByText('Back to today').click()
+
+// 5. stats
+await page.getByRole('link', { name: 'Stats' }).click(); await page.waitForTimeout(400); await shot('08-stats')
+expect(await page.getByText('70-day map').isVisible(), 'heatmap')
+expect(await page.getByText('Excuses').isVisible(), 'excuses')
+
+// 6. friends
+await page.getByRole('link', { name: 'Friends' }).click(); await page.waitForTimeout(400); await shot('09-friends')
+expect(await page.getByText('Marco').isVisible(), 'friend row')
+await page.getByText('Marco').click(); await page.waitForTimeout(500); await shot('10-friend-detail')
+expect(await page.getByRole('heading', { name: 'Marco' }).isVisible(), 'friend detail')
+
+// 7. settings
+await page.getByRole('link', { name: 'Settings' }).click(); await page.waitForTimeout(400); await shot('11-settings')
+expect((await page.locator('input[readonly]').inputValue()).includes('/u/' + TOKEN), 'login link shown')
+
+// 8. desktop width dashboard
+await page.setViewportSize({ width: 1100, height: 900 }); await page.goto(base + '/'); await page.waitForTimeout(500); await shot('12-dashboard-desktop')
+
+// 9. manifest + sw
+const man = await page.request.get(base + '/manifest.webmanifest'); expect(man.ok(), 'manifest served')
+const sw = await page.request.get(base + '/sw.js'); expect(sw.ok(), 'sw served')
+
+await b.close()
+console.log('RPC calls:', [...new Set(calls)].join(', '))
+if (errors.length) { console.log('ERRORS:\n' + errors.join('\n')); process.exit(1) }
+console.log('smoke ok')
