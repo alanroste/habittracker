@@ -1,4 +1,4 @@
-import { characterState, milestoneProgress, LEVELS } from '../lib/character'
+import { characterState, milestoneProgress } from '../lib/character'
 import type { Stats } from '../types'
 import { Card } from './ui'
 import CharacterArt from './CharacterArt'
@@ -48,7 +48,7 @@ export default function CharacterCard({ stats }: { stats: Stats }) {
 
 /** The collectibles shelf. Earned once, kept forever — keyed off your best streak. */
 export function MilestoneShelf({ stats }: { stats: Stats }) {
-  const { all, next, best } = milestoneProgress(stats)
+  const { all, next, best, set } = milestoneProgress(stats)
   return (
     <Card className="p-4">
       <div className="mb-3 flex items-baseline justify-between">
@@ -64,9 +64,9 @@ export function MilestoneShelf({ stats }: { stats: Stats }) {
             className={`flex flex-col items-center gap-1 rounded-xl border px-1 py-2 text-center ${
               m.earned ? 'border-warn/40 bg-warn/10' : 'border-border bg-surface-2'
             }`}
-            title={`${m.name} ${m.sub} — ${m.days}-day streak`}
+            title={`${m.name} — ${m.days}-day streak`}
           >
-            <MilestoneIcon days={m.days} earned={m.earned} />
+            <MilestoneIcon set={set.key} days={m.days} earned={m.earned} />
             <div className={`text-[10px] font-semibold leading-tight ${m.earned ? 'text-ink' : 'text-ink-3'}`}>{m.days}d</div>
             <div className={`text-[9px] leading-tight ${m.earned ? 'text-ink-2' : 'text-ink-3'}`}>{m.name}</div>
           </div>
@@ -82,9 +82,12 @@ export function LevelLadder({ stats }: { stats: Stats }) {
   const currentLevel = state.mode === 'powered' ? state.level : 0
   return (
     <Card className="p-4">
-      <h2 className="mb-3 font-semibold">The ladder</h2>
+      <div className="mb-3 flex items-baseline justify-between">
+        <h2 className="font-semibold">The ladder</h2>
+        <span className="text-xs text-ink-3">{state.set.label}</span>
+      </div>
       <ul className="space-y-1">
-        {LEVELS.map((t, i) => {
+        {state.set.levels.map((t, i) => {
           const reached = currentLevel >= i + 1
           return (
             <li

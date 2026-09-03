@@ -605,3 +605,28 @@ grant execute on function
   set_habit_time(text, uuid, time_of_day),
   group_habits(text)
 to anon;
+
+-- Each user picks a character set; the level/depleted/milestone thresholds are
+-- shared, only the names, captions and artwork differ (see src/lib/character.ts).
+
+create type character_set as enum ('snoop','batman','luffy');
+
+alter table users add column character_set character_set not null default 'luffy';
+
+create or replace function _user_json(u users) returns jsonb
+language sql immutable as $$
+  select jsonb_build_object(
+    'id', u.id, 'name', u.name, 'timezone', u.timezone, 'started_on', u.started_on,
+    'challenge_days', u.challenge_days, 'onboarded', u.onboarded,
+    'character_set', u.character_set)
+$$;
+
+create or replace function set_character(p_token text, p_set character_set) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare u users := _auth(p_token);
+begin
+  update users set character_set = p_set where id = u.id returning * into u;
+  return _user_json(u) || jsonb_build_object('today', _today(u.id), 'login_token', u.login_token);
+end $$;
+
+grant execute on function set_character(text, character_set) to anon;

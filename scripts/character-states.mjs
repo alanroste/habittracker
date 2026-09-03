@@ -2,7 +2,7 @@
 import { chromium } from 'playwright'
 const [base = 'http://localhost:4173', out = 'shots'] = process.argv.slice(2)
 const TOKEN = 'f7f8c85f22984b998e9ca4f73b3ea4ae'
-const ME = { id: 'u4', name: 'Alan', timezone: 'America/New_York', started_on: '2026-06-25', challenge_days: 70, onboarded: true, today: '2026-09-02', login_token: TOKEN }
+const ME = { id: 'u4', name: 'Alan', timezone: 'America/New_York', started_on: '2026-06-25', challenge_days: 70, onboarded: true, today: '2026-09-02', login_token: TOKEN, character_set: 'luffy' }
 
 // history of N clean days ending today (today still pending => streak alive)
 const cleanHistory = (n) => {

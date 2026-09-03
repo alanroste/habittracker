@@ -10,6 +10,7 @@ export interface User {
   started_on: string
   challenge_days: number
   onboarded: boolean
+  character_set: string
 }
 export interface Me extends User {
   today: string

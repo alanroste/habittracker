@@ -7,56 +7,133 @@ import type { Stats } from '../types'
  *   Depleted    — takes over the moment you miss ANY habit on a day, no matter
  *                 how much else you completed, and gets worse the longer it runs.
  *
- * Art is pluggable: drop an image at the tier's `image` path (see
- * public/characters/README.md) and it replaces the drawn artwork.
+ * Each user picks a set; the thresholds are shared, only the names, captions and
+ * art differ. Art lives at /characters/<set>/<key>.webp — see
+ * scripts/slice-characters.mjs and public/characters/README.md.
  */
+
+export type CharacterSetKey = 'snoop' | 'batman' | 'luffy'
 
 export interface Tier {
   key: string
   name: string
   caption: string
-  /** Lower bound: streak days for levels, consecutive missed days for depleted. */
+  /** Streak days for levels; consecutive missed days for depleted. */
   at: number
-  image: string
 }
-
-export const LEVELS: Tier[] = [
-  { key: 'level-1', name: 'Porch Chillin’', caption: 'Light buzz. Locked in.', at: 0, image: '/characters/level-1.png' },
-  { key: 'level-2', name: 'Hotbox Cruiser', caption: 'Good vibes. Momentum building.', at: 3, image: '/characters/level-2.png' },
-  { key: 'level-3', name: 'Studio Wizard', caption: 'Creative mode unlocked.', at: 7, image: '/characters/level-3.png' },
-  { key: 'level-4', name: 'Intergalactic Float', caption: 'Higher plane. Maximum chill.', at: 14, image: '/characters/level-4.png' },
-  { key: 'level-5', name: 'Cloud Kingdom Boss', caption: 'Fully ascended.', at: 30, image: '/characters/level-5.png' },
-]
-
-export const DEPLETED: Tier[] = [
-  { key: 'depleted-1', name: 'Low Supply', caption: 'Running low.', at: 1, image: '/characters/depleted-1.png' },
-  { key: 'depleted-2', name: 'Pocket Check', caption: 'There was supposed to be more.', at: 2, image: '/characters/depleted-2.png' },
-  { key: 'depleted-3', name: 'Crumb Detective', caption: 'Desperate investigation.', at: 3, image: '/characters/depleted-3.png' },
-  { key: 'depleted-4', name: 'Dry Spell', caption: 'No smoke. No focus.', at: 4, image: '/characters/depleted-4.png' },
-  { key: 'depleted-5', name: 'Snack Meltdown', caption: 'Everything is annoying.', at: 5, image: '/characters/depleted-5.png' },
-  { key: 'depleted-7', name: 'Existential Crisis', caption: 'Rock bottom energy.', at: 7, image: '/characters/depleted-7.png' },
-  { key: 'depleted-10', name: 'The Void', caption: 'System failure.', at: 10, image: '/characters/depleted-10.png' },
-]
 
 export interface Milestone {
   days: number
   name: string
-  sub: string
 }
 
+export interface CharacterSet {
+  key: CharacterSetKey
+  label: string
+  blurb: string
+  levels: Tier[]
+  depleted: Tier[]
+  milestones: Milestone[]
+}
+
+/** Shared thresholds. Levels by streak; depleted by consecutive missed days. */
+const LEVEL_AT = [0, 3, 7, 14, 30]
+const DEPLETED_AT = [1, 2, 3, 4, 5, 7, 10]
 /** Scaled to the 70-day challenge, so the last one lands on finishing it clean. */
-export const MILESTONES: Milestone[] = [
-  { days: 3, name: 'Tiny Blunt', sub: 'of Discipline' },
-  { days: 7, name: 'Gold Lighter', sub: 'of Consistency' },
-  { days: 14, name: 'Plush Robe', sub: 'of Commitment' },
-  { days: 30, name: 'Lowrider Keys', sub: 'of Freedom' },
-  { days: 50, name: 'Cloud Throne', sub: 'of Greatness' },
-  { days: 70, name: 'Cosmic Crown', sub: 'of Legend' },
-]
+const MILESTONE_DAYS = [3, 7, 14, 30, 50, 70]
+
+const levels = (rows: [string, string][]): Tier[] =>
+  rows.map(([name, caption], i) => ({ key: `level-${i + 1}`, name, caption, at: LEVEL_AT[i] }))
+
+const depleted = (rows: [string, string][]): Tier[] =>
+  rows.map(([name, caption], i) => ({ key: `depleted-${DEPLETED_AT[i]}`, name, caption, at: DEPLETED_AT[i] }))
+
+const milestones = (names: string[]): Milestone[] =>
+  names.map((name, i) => ({ days: MILESTONE_DAYS[i], name }))
+
+export const CHARACTER_SETS: Record<CharacterSetKey, CharacterSet> = {
+  luffy: {
+    key: 'luffy',
+    label: 'Luffy',
+    blurb: 'Gears up as the streak grows.',
+    levels: levels([
+      ['Base Luffy', 'Ready for adventure. Streak begins.'],
+      ['Gear 2', 'Blood pumping. Locked in.'],
+      ['Gear 3', 'Big moves. Bigger habits.'],
+      ['Gear 4', 'Monster discipline. No stopping now.'],
+      ['Gear 5', 'Peak freedom. Peak consistency.'],
+    ]),
+    depleted: depleted([
+      ['Overslept', 'Even pirates need sleep…'],
+      ['Skipped Training', 'Tomorrow for sure.'],
+      ['No Adventure', 'This is not pirate behavior.'],
+      ['Losing Haki', 'Momentum is slipping…'],
+      ['Crew Is Concerned', 'Bro, get it together.'],
+      ['Couch Potato Captain', 'Captain of the couch.'],
+      ['Lost At Sea', "Even the future Pirate King can't live like this."],
+    ]),
+    milestones: milestones(['Mini Straw Hat', 'Going Merry', 'Devil Fruit', 'Thousand Sunny', 'Wanted Poster', 'Pirate King Crown']),
+  },
+  batman: {
+    key: 'batman',
+    label: 'Bat Hero',
+    blurb: 'Build discipline. Protect your city.',
+    levels: levels([
+      ['Broke Bruce', 'Barely heroic. Still showed up.'],
+      ['Rooftop Vigilante', 'Momentum building. Night shift activated.'],
+      ['Gadget Goblin', 'Prep mode. No problem is too small.'],
+      ['Prep-Time Demon', 'He already planned for this six months ago.'],
+      ['Gotham Final Boss', 'Fear itself now has a curfew.'],
+    ]),
+    depleted: depleted([
+      ['Overslept', 'The city can wait five more minutes…'],
+      ['Skipped Training', 'Crime is up. Motivation is down.'],
+      ['Utility Belt Empty', 'No tools. No edge. No excuse.'],
+      ['Batmobile Dead', 'Even vengeance needs maintenance.'],
+      ['Alfred Is Disappointed', 'When the butler loses faith, it’s bad.'],
+      ['Gotham Noticed', "You weren't absent. You were missed."],
+      ['Joker Took The Cave', 'Rock bottom has clown music.'],
+    ]),
+    milestones: milestones(['Mask', 'Batarang', 'Smoke Bombs', 'Grapple Gun', 'Armored Suit', 'City Legend']),
+  },
+  snoop: {
+    key: 'snoop',
+    label: 'Snoop',
+    blurb: 'Complete your habits. Elevate the streak.',
+    levels: levels([
+      ['Porch Chillin’', 'Light buzz. Locked in.'],
+      ['Hotbox Cruiser', 'Good vibes. Momentum building.'],
+      ['Studio Wizard', 'Creative mode unlocked.'],
+      ['Intergalactic Float', 'Higher plane. Maximum chill.'],
+      ['Cloud Kingdom Boss', 'Fully ascended.'],
+    ]),
+    depleted: depleted([
+      ['Low Supply', 'Running low.'],
+      ['Pocket Check', 'There was supposed to be more.'],
+      ['Crumb Detective', 'Desperate investigation.'],
+      ['Dry Spell', 'No smoke. No focus.'],
+      ['Snack Meltdown', 'Everything is annoying.'],
+      ['Existential Crisis', 'Rock bottom energy.'],
+      ['The Void', 'System failure.'],
+    ]),
+    milestones: milestones(['Tiny Blunt', 'Gold Lighter', 'Plush Robe', 'Lowrider Keys', 'Cloud Throne', 'Cosmic Crown']),
+  },
+}
+
+export const DEFAULT_SET: CharacterSetKey = 'luffy'
+
+export function getSet(key: string | null | undefined): CharacterSet {
+  return CHARACTER_SETS[(key as CharacterSetKey) in CHARACTER_SETS ? (key as CharacterSetKey) : DEFAULT_SET]
+}
+
+/** Where a tier's artwork lives. */
+export function artUrl(set: CharacterSetKey, tierKey: string) {
+  return `/characters/${set}/${tierKey}.webp`
+}
 
 export type CharacterState =
-  | { mode: 'powered'; tier: Tier; level: number; streak: number; next: Tier | null; toNext: number; progress: number }
-  | { mode: 'depleted'; tier: Tier; daysMissed: number; level: number }
+  | { mode: 'powered'; set: CharacterSet; tier: Tier; level: number; streak: number; next: Tier | null; toNext: number; progress: number }
+  | { mode: 'depleted'; set: CharacterSet; tier: Tier; daysMissed: number; level: number }
 
 /**
  * Consecutive days ending now where at least one daily habit was missed or never
@@ -85,32 +162,32 @@ function tierFor(tiers: Tier[], value: number): { tier: Tier; index: number } {
 }
 
 export function characterState(stats: Stats): CharacterState {
+  const set = getSet(stats.user.character_set)
   const missed = consecutiveMissedDays(stats)
   if (missed > 0) {
-    const { tier, index } = tierFor(DEPLETED, missed)
-    return { mode: 'depleted', tier, daysMissed: missed, level: index + 1 }
+    const { tier, index } = tierFor(set.depleted, missed)
+    return { mode: 'depleted', set, tier, daysMissed: missed, level: index + 1 }
   }
   const streak = stats.streak.current
-  const { tier, index } = tierFor(LEVELS, streak)
-  const next = LEVELS[index + 1] ?? null
-  const toNext = next ? next.at - streak : 0
+  const { tier, index } = tierFor(set.levels, streak)
+  const next = set.levels[index + 1] ?? null
   const span = next ? next.at - tier.at : 1
   return {
     mode: 'powered',
+    set,
     tier,
     level: index + 1,
     streak,
     next,
-    toNext,
+    toNext: next ? next.at - streak : 0,
     progress: next ? Math.min(1, (streak - tier.at) / span) : 1,
   }
 }
 
 /** Milestones stay earned once you've hit them, so they key off your best streak. */
 export function milestoneProgress(stats: Stats) {
+  const set = getSet(stats.user.character_set)
   const best = stats.streak.best
-  const current = stats.streak.current
-  const unlocked = MILESTONES.filter((m) => best >= m.days)
-  const next = MILESTONES.find((m) => best < m.days) ?? null
-  return { best, current, unlocked, next, all: MILESTONES.map((m) => ({ ...m, earned: best >= m.days })) }
+  const next = set.milestones.find((m) => best < m.days) ?? null
+  return { set, best, next, all: set.milestones.map((m) => ({ ...m, earned: best >= m.days })) }
 }

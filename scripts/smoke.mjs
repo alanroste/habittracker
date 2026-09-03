@@ -4,7 +4,7 @@ import { chromium } from 'playwright'
 const [base = 'http://localhost:4173', out = 'shots'] = process.argv.slice(2)
 
 const TOKEN = 'f7f8c85f22984b998e9ca4f73b3ea4ae'
-const ME = { id: 'u4', name: 'Alan', timezone: 'America/New_York', started_on: '2026-08-27', challenge_days: 70, onboarded: true }
+const ME = { id: 'u4', name: 'Alan', timezone: 'America/New_York', started_on: '2026-08-27', challenge_days: 70, onboarded: true, character_set: 'luffy' }
 const today = '2026-09-02'
 const habits = [
   { id: 'h1', category: 'health', title: 'Supplements', frequency: 'daily', target_count: 1, sort_order: 0, starts_on: ME.started_on, time_of_day: 'morning' },
@@ -106,6 +106,7 @@ async function mock(route) {
     case 'me': return body.p_token === TOKEN ? json({ ...ME, onboarded, today, login_token: TOKEN }) : err('invalid token')
     case 'update_profile': return json({ ...ME, name: body.p_name, timezone: body.p_timezone, onboarded, today, login_token: TOKEN })
     case 'complete_onboarding': onboarded = true; return json({ ...ME, onboarded, today, login_token: TOKEN })
+    case 'set_character': return json({ ...ME, character_set: body.p_set, onboarded, today, login_token: TOKEN })
     case 'my_habits': return json(habits)
     case 'upsert_habit': return json({ id: 'new', category: body.p_category, title: body.p_title, frequency: body.p_frequency, target_count: body.p_target_count, sort_order: 0, starts_on: today })
     case 'delete_habit': case 'clear_log': return json(null)
@@ -158,6 +159,7 @@ await shot('06-dashboard')
 expect(await page.getByText('Day 7 of 70').isVisible(), 'day counter')
 expect(await page.getByText('Streak milestones').isVisible(), 'milestone shelf')
 expect(await page.getByText('The ladder').isVisible(), 'level ladder')
+expect(await page.locator('img[src*="/characters/luffy/"]').first().isVisible(), 'character art loads for the chosen set')
 expect(await page.getByText('days logged').isVisible(), 'days logged')
 expect(await page.getByText("I'm a bum").first().isVisible(), 'reason shown on row')
 // mark Meditate missed → reason sheet → submit

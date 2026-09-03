@@ -21,6 +21,7 @@ export const api = {
   me: (token?: string) => rpc<Me>('me', {}, token ?? getToken()),
   updateProfile: (name: string, timezone: string) => rpc<Me>('update_profile', { p_name: name, p_timezone: timezone }),
   completeOnboarding: () => rpc<Me>('complete_onboarding'),
+  setCharacter: (set: string) => rpc<Me>('set_character', { p_set: set }),
   myHabits: () => rpc<Habit[]>('my_habits'),
   upsertHabit: (h: { id?: string | null; category: Category; title: string; frequency: Frequency; target_count: number; sort_order?: number; time_of_day?: TimeOfDay }) =>
     rpc<Habit>('upsert_habit', {

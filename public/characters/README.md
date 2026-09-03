@@ -1,52 +1,42 @@
 # Character art
 
-Every tier draws its own SVG by default. Drop a PNG here with the matching
-filename and it replaces the drawing automatically — no code change, and a
-missing file just falls back to the drawing, so partial sets are fine.
+Three sets ship with the app: `luffy/`, `batman/`, `snoop/`. Each user picks one
+in Settings (or during onboarding); it is stored on their row as `character_set`.
 
-## Power levels (streak-driven)
+Every set holds the same 18 tiles, as WebP:
 
-| File | Tier | Unlocks at |
-|---|---|---|
-| `level-1.png` | Porch Chillin' | start |
-| `level-2.png` | Hotbox Cruiser | 3-day streak |
-| `level-3.png` | Studio Wizard | 7-day streak |
-| `level-4.png` | Intergalactic Float | 14-day streak |
-| `level-5.png` | Cloud Kingdom Boss | 30-day streak |
+| File | Shown when |
+|---|---|
+| `level-1.webp` … `level-5.webp` | streak of 0 / 3 / 7 / 14 / 30 days |
+| `depleted-1.webp` … `depleted-10.webp` | 1 / 2 / 3 / 4 / 5 / 7 / 10+ consecutive days with any miss |
+| `milestone-3.webp` … `milestone-70.webp` | best streak reaches 3 / 7 / 14 / 30 / 50 / 70 days |
 
-## Depleted states (consecutive days with any miss)
+A missing file falls back to a plain placeholder rather than a broken image, so
+partial sets are fine.
 
-| File | Tier | Shows after |
-|---|---|---|
-| `depleted-1.png` | Low Supply | 1 day missed |
-| `depleted-2.png` | Pocket Check | 2 days |
-| `depleted-3.png` | Crumb Detective | 3 days |
-| `depleted-4.png` | Dry Spell | 4 days |
-| `depleted-5.png` | Snack Meltdown | 5 days |
-| `depleted-7.png` | Existential Crisis | 7 days |
-| `depleted-10.png` | The Void | 10+ days |
+Tier names and captions live in `src/lib/character.ts`, not in the images — the
+crops deliberately exclude each sheet's printed titles so the app can render
+real text (and so the sheets' printed day numbers, which disagree with each
+other, don't matter).
 
-## Milestone objects (best-streak-driven)
+## Regenerating from the contact sheets
 
-`milestone-3.png`, `milestone-7.png`, `milestone-14.png`, `milestone-30.png`,
-`milestone-50.png`, `milestone-70.png`
-
-## Slicing a contact sheet
-
-If you have one big grid image with all the panels on it, save it as
-`source.png` in this folder and run:
+Full-size sheets are in `art-source/` (kept out of `public/` so ~9MB isn't
+served to every visitor).
 
 ```bash
-node scripts/slice-characters.mjs
+node scripts/slice-characters.mjs          # all sets
+node scripts/slice-characters.mjs luffy    # just one
 ```
 
-Edit the `GRID` coordinates at the top of that script to match your image
-(they're fractions of width/height, so they work at any resolution), then
-re-run until the crops line up.
+It writes the tiles plus `art-source/_preview.png`, a labelled contact sheet of
+every crop. Check that, tune the fractional `SETS` coordinates at the top of the
+script, and re-run until the panels line up.
 
-## Note on `source.png`
+## Adding a fourth set
 
-`source.png` is only an input for the slicer — it is not referenced by the app.
-After slicing, move it out of `public/` (or delete it) so the full-size contact
-sheet isn't shipped to every visitor. `_preview.png` is likewise just a
-check-your-work artifact.
+1. Drop the sheet in `art-source/`.
+2. Add its crop coordinates to `SETS` in `scripts/slice-characters.mjs`, run it.
+3. Add the names/captions to `CHARACTER_SETS` in `src/lib/character.ts`.
+4. Add the key to the `character_set` enum in Postgres:
+   `alter type character_set add value 'newname';`

@@ -7,6 +7,8 @@ import { browserTimezone, timezoneList } from '../lib/dates'
 import { CATEGORIES, type Habit } from '../types'
 import { Button, Card, ErrorNote, Field, inputCls } from '../components/ui'
 import HabitForm, { frequencyLabel, type HabitInput } from '../components/HabitForm'
+import CharacterPicker from '../components/CharacterPicker'
+import type { CharacterSetKey } from '../lib/character'
 
 export default function Onboarding() {
   const { me, refresh } = useSession()
@@ -16,12 +18,16 @@ export default function Onboarding() {
   const [name, setName] = useState(me?.name?.startsWith('Friend ') ? '' : me?.name ?? '')
   const [tz, setTz] = useState(me?.timezone && me.timezone !== 'UTC' ? me.timezone : browserTimezone())
   const [editing, setEditing] = useState<Habit | null>(null)
+  const [charSet, setCharSet] = useState<CharacterSetKey>((me?.character_set as CharacterSetKey) ?? 'luffy')
 
   const habits = useQuery({ queryKey: ['habits'], queryFn: api.myHabits })
   const invalidate = () => qc.invalidateQueries({ queryKey: ['habits'] })
   const save = useMutation({ mutationFn: (h: HabitInput) => api.upsertHabit(h), onSuccess: () => { invalidate(); setEditing(null) } })
   const del = useMutation({ mutationFn: api.deleteHabit, onSuccess: invalidate })
-  const profile = useMutation({ mutationFn: () => api.updateProfile(name, tz), onSuccess: () => { refresh(); setStep(1) } })
+  const profile = useMutation({
+    mutationFn: async () => { await api.setCharacter(charSet); return api.updateProfile(name, tz) },
+    onSuccess: () => { refresh(); setStep(1) },
+  })
   const finish = useMutation({
     mutationFn: api.completeOnboarding,
     onSuccess: async () => { await refresh(); qc.invalidateQueries(); nav('/', { replace: true }) },
@@ -47,6 +53,11 @@ export default function Onboarding() {
               {timezoneList().map((t) => <option key={t} value={t}>{t}</option>)}
             </select>
           </Field>
+          <div>
+            <span className="mb-1 block text-sm text-ink-2">Pick your character</span>
+            <CharacterPicker value={charSet} onChange={setCharSet} />
+            <span className="mt-1 block text-xs text-ink-3">They level up with your streak. Changeable later.</span>
+          </div>
           <ErrorNote msg={err?.message} />
           <Button full disabled={!name.trim() || profile.isPending} onClick={() => profile.mutate()}>Next</Button>
         </Card>

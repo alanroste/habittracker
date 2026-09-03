@@ -6,6 +6,8 @@ import { timezoneList } from '../lib/dates'
 import { CATEGORIES, type Category, type Habit } from '../types'
 import { Button, Card, ErrorNote, Field, inputCls } from '../components/ui'
 import HabitForm, { frequencyLabel, type HabitInput } from '../components/HabitForm'
+import CharacterPicker from '../components/CharacterPicker'
+import type { CharacterSetKey } from '../lib/character'
 
 export default function Settings() {
   const { me, refresh, logout } = useSession()
@@ -21,6 +23,7 @@ export default function Settings() {
   const save = useMutation({ mutationFn: (h: HabitInput) => api.upsertHabit(h), onSuccess: () => { invalidate(); setEditing(null); setAdding(null) } })
   const del = useMutation({ mutationFn: api.deleteHabit, onSuccess: invalidate })
   const profile = useMutation({ mutationFn: () => api.updateProfile(name, tz), onSuccess: () => { refresh(); qc.invalidateQueries() } })
+  const character = useMutation({ mutationFn: (set: CharacterSetKey) => api.setCharacter(set), onSuccess: () => { refresh(); qc.invalidateQueries() } })
 
   const link = `${window.location.origin}/u/${me?.login_token}`
   const copy = async () => {
@@ -43,6 +46,16 @@ export default function Settings() {
         </Field>
         <Button disabled={profile.isPending || (name === me?.name && tz === me?.timezone)} onClick={() => profile.mutate()}>Save</Button>
         {profile.isSuccess && <span className="ml-3 text-sm text-good">Saved</span>}
+      </Card>
+
+      <Card className="space-y-3 p-4">
+        <h2 className="font-semibold">Your character</h2>
+        <p className="text-sm text-ink-2">Who levels up on your dashboard as the streak grows.</p>
+        <CharacterPicker
+          value={me?.character_set ?? 'luffy'}
+          onChange={(k) => character.mutate(k)}
+          disabled={character.isPending}
+        />
       </Card>
 
       <Card className="space-y-3 p-4">
