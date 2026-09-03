@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { FriendsIcon, SettingsIcon, StatsIcon, TodayIcon, TodoIcon } from './icons'
 
 const tabs = [
@@ -10,6 +10,8 @@ const tabs = [
 ]
 
 export default function Layout() {
+  // The personal link (/u/<token>) renders the To-Do page, so light that tab up.
+  const onPersonalLink = useLocation().pathname.startsWith('/u/')
   return (
     <div className="mx-auto flex min-h-dvh max-w-2xl flex-col">
       <main className="safe-t flex-1 px-4 pb-28 pt-3">
@@ -24,11 +26,13 @@ export default function Layout() {
               end={end}
               className={({ isActive }) =>
                 `group relative flex flex-1 flex-col items-center gap-0.5 rounded-[20px] py-2.5 text-[10px] font-medium sm:text-[11px] transition-colors ${
-                  isActive ? 'text-ink' : 'text-ink-3 hover:text-ink-2'
+                  isActive || (onPersonalLink && to === '/') ? 'text-ink' : 'text-ink-3 hover:text-ink-2'
                 }`
               }
             >
-              {({ isActive }) => (
+              {({ isActive: active }) => {
+                const isActive = active || (onPersonalLink && to === '/')
+                return (
                 <>
                   {isActive && (
                     <span className="absolute inset-0 rounded-[20px] bg-surface-2 ring-1 ring-inset ring-border" aria-hidden />
@@ -38,7 +42,8 @@ export default function Layout() {
                   />
                   <span className="relative">{label}</span>
                 </>
-              )}
+                )
+              }}
             </NavLink>
           ))}
         </div>

@@ -4,43 +4,43 @@ import { Card } from './ui'
 import CharacterArt from './CharacterArt'
 import MilestoneIcon from './MilestoneIcon'
 
-/** The hero of the account dashboard: who you currently are, and why. */
+/**
+ * The hero of the account dashboard. The artwork carries its own printed title
+ * and caption, so the card doesn't repeat them — it adds only what the picture
+ * can't know: your streak and how far the next level is.
+ */
 export default function CharacterCard({ stats }: { stats: Stats }) {
   const state = characterState(stats)
   const depleted = state.mode === 'depleted'
 
   return (
-    <Card
-      className="overflow-hidden p-4"
-      accent={depleted ? 'var(--color-bad)' : 'var(--color-good)'}
-    >
-      <div className="flex items-center gap-4">
-        <div className="shrink-0">
-          <CharacterArt state={state} size={132} />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className={`text-xs font-semibold uppercase tracking-wide ${depleted ? 'text-bad' : 'text-good'}`}>
-            {depleted ? `${state.daysMissed} day${state.daysMissed === 1 ? '' : 's'} missed` : `Level ${state.level}`}
-          </div>
-          <h2 className="text-lg font-bold leading-tight">{state.tier.name}</h2>
-          <p className="text-sm text-ink-2">{state.tier.caption}</p>
+    <Card className="overflow-hidden" accent={depleted ? 'var(--color-bad)' : 'var(--color-good)'}>
+      <CharacterArt state={state} />
 
-          {state.mode === 'powered' ? (
-            <div className="mt-3">
-              <div className="mb-1 flex items-baseline justify-between text-xs text-ink-3">
-                <span>{state.streak}-day streak</span>
-                {state.next ? <span>{state.toNext} to {state.next.name}</span> : <span className="text-warn">Max level</span>}
-              </div>
-              <div className="h-2 w-full overflow-hidden rounded-full bg-surface-2">
-                <div className="h-2 rounded-full bg-good" style={{ width: `${state.progress * 100}%` }} />
-              </div>
+      <div className="p-4">
+        {state.mode === 'powered' ? (
+          <>
+            <div className="mb-1.5 flex items-baseline justify-between text-sm">
+              <span className="font-semibold">
+                {state.streak}-day streak
+                <span className="ml-2 text-xs font-normal text-ink-3">Level {state.level}</span>
+              </span>
+              {state.next
+                ? <span className="text-xs text-ink-3">{state.toNext} to {state.next.name}</span>
+                : <span className="text-xs font-semibold text-warn">Max level</span>}
             </div>
-          ) : (
-            <p className="mt-3 rounded-xl bg-bad/10 px-3 py-2 text-xs text-bad">
-              Log every habit for a full day to power back up.
-            </p>
-          )}
-        </div>
+            <div className="h-2 w-full overflow-hidden rounded-full bg-surface-2">
+              <div className="h-2 rounded-full bg-good transition-all" style={{ width: `${state.progress * 100}%` }} />
+            </div>
+          </>
+        ) : (
+          <div className="flex items-center gap-3">
+            <span className="shrink-0 rounded-lg bg-bad/15 px-2.5 py-1 text-sm font-bold text-bad">
+              {state.daysMissed}d
+            </span>
+            <p className="text-sm text-bad">Log every habit for a full day to power back up.</p>
+          </div>
+        )}
       </div>
     </Card>
   )
@@ -61,13 +61,13 @@ export function MilestoneShelf({ stats }: { stats: Stats }) {
         {all.map((m) => (
           <div
             key={m.days}
-            className={`flex flex-col items-center gap-1 rounded-xl border px-1 py-2 text-center ${
+            className={`flex flex-col items-center gap-1 rounded-xl border p-1.5 text-center ${
               m.earned ? 'border-warn/40 bg-warn/10' : 'border-border bg-surface-2'
             }`}
             title={`${m.name} — ${m.days}-day streak`}
           >
             <MilestoneIcon set={set.key} days={m.days} earned={m.earned} />
-            <div className={`text-[10px] font-semibold leading-tight ${m.earned ? 'text-ink' : 'text-ink-3'}`}>{m.days}d</div>
+            <div className={`text-[11px] font-semibold leading-tight ${m.earned ? 'text-ink' : 'text-ink-3'}`}>{m.days}d</div>
             <div className={`text-[9px] leading-tight ${m.earned ? 'text-ink-2' : 'text-ink-3'}`}>{m.name}</div>
           </div>
         ))}

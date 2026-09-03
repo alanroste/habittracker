@@ -1,6 +1,5 @@
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { useSession } from './lib/SessionContext'
-import Entry from './pages/Entry'
 import NoToken from './pages/NoToken'
 import Onboarding from './pages/Onboarding'
 import Dashboard from './pages/Dashboard'
@@ -16,9 +15,6 @@ export default function App() {
   const { me, token, loading, error } = useSession()
   const loc = useLocation()
 
-  if (loc.pathname.startsWith('/u/')) {
-    return <Routes><Route path="/u/:token" element={<Entry />} /></Routes>
-  }
   if (!token || error) return <NoToken error={error} />
   if (loading || !me) return <div className="min-h-dvh grid place-items-center"><Spinner /></div>
   if (!me.onboarded && loc.pathname !== '/onboarding') return <Navigate to="/onboarding" replace />
@@ -28,6 +24,7 @@ export default function App() {
       <Route path="/onboarding" element={<Onboarding />} />
       <Route element={<Layout />}>
         <Route path="/" element={<Todo />} />
+        <Route path="/u/:token" element={<Todo />} />
         <Route path="/me" element={<Dashboard />} />
         <Route path="/stats" element={<StatsPage />} />
         <Route path="/friends" element={<Friends />} />

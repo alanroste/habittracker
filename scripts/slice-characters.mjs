@@ -4,11 +4,11 @@
  *   node scripts/slice-characters.mjs            # all sets
  *   node scripts/slice-characters.mjs luffy      # one set
  *
- * Crops target the ARTWORK only, deliberately excluding each panel's printed
- * title/caption — the app renders those as real text, so baking them into a
- * 132px thumbnail would just be illegible duplication. It also frees us from
- * the sheets' printed day numbers, which disagree with each other (two sheets
- * say 60/100 days where the challenge tops out at 70).
+ * Level and depleted crops keep the WHOLE panel, printed title and caption
+ * included — the card shows them large and lets the artwork carry its own words.
+ * Milestone crops stay art-only: those tiles print day numbers that disagree
+ * between sheets (two say 60/100 where the challenge tops out at 70), so the app
+ * supplies those labels instead.
  *
  * Coordinates are FRACTIONS of each source image, so they survive any resize.
  * Sheets live in art-source/ (kept out of public/ so 9MB isn't served).
@@ -33,24 +33,24 @@ const SETS = {
   snoop: {
     source: 'snoop-sheet.png',
     rows: [
-      { names: LEVELS, left: 0.198, right: 0.995, top: 0.106, bottom: 0.419, gap: 0.024 },
-      { names: DEPLETED, left: 0.198, right: 0.970, top: 0.553, bottom: 0.752, gap: 0.024 },
+      { names: LEVELS, left: 0.198, right: 0.995, top: 0.043, bottom: 0.470, gap: 0.003, maxWidth: 640 },
+      { names: DEPLETED, left: 0.189, right: 0.962, top: 0.516, bottom: 0.810, gap: 0.003, maxWidth: 640 },
       { names: MILESTONES, left: 0.149, right: 0.790, top: 0.864, bottom: 0.941, gap: 0.044, maxWidth: 200 },
     ],
   },
   batman: {
     source: 'batman-sheet.png',
     rows: [
-      { names: LEVELS, left: 0.154, right: 0.996, top: 0.096, bottom: 0.367, gap: 0.024 },
-      { names: DEPLETED, left: 0.150, right: 0.998, top: 0.537, bottom: 0.744, gap: 0.024 },
+      { names: LEVELS, left: 0.154, right: 0.996, top: 0.048, bottom: 0.425, gap: 0.003, maxWidth: 640 },
+      { names: DEPLETED, left: 0.142, right: 0.990, top: 0.480, bottom: 0.800, gap: 0.003, maxWidth: 640 },
       { names: MILESTONES, left: 0.100, right: 0.790, top: 0.850, bottom: 0.927, gap: 0.044, maxWidth: 200 },
     ],
   },
   luffy: {
     source: 'luffy-sheet.png',
     rows: [
-      { names: LEVELS, left: 0.218, right: 0.996, top: 0.128, bottom: 0.361, gap: 0.024 },
-      { names: DEPLETED, left: 0.182, right: 0.996, top: 0.537, bottom: 0.672, gap: 0.024 },
+      { names: LEVELS, left: 0.218, right: 0.996, top: 0.062, bottom: 0.420, gap: 0.003, maxWidth: 640 },
+      { names: DEPLETED, left: 0.182, right: 0.996, top: 0.478, bottom: 0.745, gap: 0.003, maxWidth: 640 },
       { names: MILESTONES, left: 0.152, right: 0.667, top: 0.845, bottom: 0.927, gap: 0.044, maxWidth: 200 },
     ],
   },

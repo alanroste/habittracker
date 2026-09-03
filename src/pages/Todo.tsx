@@ -10,6 +10,7 @@ import HabitRow, { type RowActions } from '../components/HabitRow'
 import { ClockIcon } from '../components/icons'
 import ReasonSheet from '../components/ReasonSheet'
 import InstallBanner from '../components/InstallBanner'
+import StorageWarning from '../components/StorageWarning'
 
 /** Today's habits as a running order: Morning → Afternoon → Evening → Anytime. */
 export default function Todo() {
@@ -54,6 +55,7 @@ export default function Todo() {
 
   return (
     <div className="space-y-3">
+      <StorageWarning />
       <InstallBanner />
       <div>
         <h1 className="text-xl font-bold">To-do today</h1>

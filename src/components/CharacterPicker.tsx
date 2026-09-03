@@ -22,7 +22,7 @@ export default function CharacterPicker({
             <img
               src={artUrl(set.key, 'level-5')}
               alt=""
-              className="aspect-square w-full object-cover"
+              className="block w-full"
               loading="lazy"
             />
             <div className="px-2 py-1.5">

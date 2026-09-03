@@ -80,3 +80,7 @@ onboarding is completed.
 - `node scripts/make-icons.mjs` — regenerate the PWA icons in `public/`
 - `node scripts/smoke.mjs <url> <outDir>` — browser smoke test against a mocked backend
   (`npx vite preview` first)
+- `node scripts/auth-check.mjs <url>` — proves the login link still works when the browser
+  blocks storage (private mode / in-app browsers)
+- `node scripts/slice-characters.mjs [set]` — re-cut the character tiles from `art-source/`
+- `node scripts/character-states.mjs <url> <outDir>` — render the character card across states

@@ -2,40 +2,38 @@ import { useState } from 'react'
 import { artUrl, type CharacterState } from '../lib/character'
 
 /**
- * The tier's artwork. Falls back to a drawn placeholder if a set is missing a
- * tile, so a partial art set still works rather than showing a broken image.
+ * The tier's artwork, shown full width — the panels carry their own printed
+ * title and caption, so they need the room to stay readable.
+ *
+ * Falls back to a plain badge if a set is missing a tile, so a partial art set
+ * still works rather than showing a broken image.
  */
-export default function CharacterArt({ state, size = 220 }: { state: CharacterState; size?: number }) {
+export default function CharacterArt({ state }: { state: CharacterState }) {
   const [failed, setFailed] = useState(false)
   const depleted = state.mode === 'depleted'
-  const src = artUrl(state.set.key, state.tier.key)
 
   if (failed) {
     return (
-      <div
-        className={`grid place-items-center rounded-2xl border ${
-          depleted ? 'border-bad/40 bg-bad/10' : 'border-good/40 bg-good/10'
-        }`}
-        style={{ width: size, height: size }}
-        aria-label={state.tier.name}
-      >
-        <span className={`text-3xl font-black ${depleted ? 'text-bad' : 'text-good'}`}>
+      <div className={`flex items-center gap-3 p-4 ${depleted ? 'bg-bad/10' : 'bg-good/10'}`}>
+        <span className={`grid h-12 w-12 shrink-0 place-items-center rounded-xl text-xl font-black ${
+          depleted ? 'bg-bad/20 text-bad' : 'bg-good/20 text-good'
+        }`}>
           {depleted ? '!' : state.level}
         </span>
+        <div className="min-w-0">
+          <div className="font-bold">{state.tier.name}</div>
+          <div className="text-sm text-ink-2">{state.tier.caption}</div>
+        </div>
       </div>
     )
   }
 
   return (
     <img
-      src={src}
-      alt={state.tier.name}
-      width={size}
-      height={size}
-      loading="eager"
+      src={artUrl(state.set.key, state.tier.key)}
+      alt={`${state.tier.name} — ${state.tier.caption}`}
       onError={() => setFailed(true)}
-      className="rounded-2xl object-cover"
-      style={{ width: size, height: size }}
+      className="block w-full"
     />
   )
 }
