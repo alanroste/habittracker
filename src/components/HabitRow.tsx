@@ -1,4 +1,4 @@
-import type { DayHabit } from '../types'
+import { categoryMeta, type DayHabit } from '../types'
 import { frequencyLabel } from './HabitForm'
 
 export interface RowActions {
@@ -8,7 +8,7 @@ export interface RowActions {
   onCount: (h: DayHabit, count: number) => void // limit_week counter
 }
 
-export default function HabitRow({ h, actions, readOnly }: { h: DayHabit; actions?: RowActions; readOnly?: boolean }) {
+export default function HabitRow({ h, actions, readOnly, showCategory }: { h: DayHabit; actions?: RowActions; readOnly?: boolean; showCategory?: boolean }) {
   const done = h.log?.status === 'done'
   const missed = h.log?.status === 'missed'
   const isLimit = h.frequency === 'limit_week'
@@ -21,8 +21,14 @@ export default function HabitRow({ h, actions, readOnly }: { h: DayHabit; action
         <div className={`truncate text-[15px] ${done && !isLimit ? 'text-ink-2 line-through decoration-good/60' : ''} ${missed ? 'text-ink-2' : ''}`}>
           {h.title}
         </div>
-        <div className="flex items-center gap-2 text-xs text-ink-3">
-          <span>{frequencyLabel(h)}</span>
+        <div className="flex flex-nowrap items-center gap-2 overflow-hidden whitespace-nowrap text-xs text-ink-3">
+          {showCategory && (
+            <span className="inline-flex shrink-0 items-center gap-1">
+              <i className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: categoryMeta(h.category).color }} aria-hidden />
+              {categoryMeta(h.category).label}
+            </span>
+          )}
+          <span className="shrink-0">{frequencyLabel(h)}</span>
           {weekly && (
             <span className={over ? 'font-medium text-bad' : h.week_count >= h.target_count && !isLimit ? 'font-medium text-good' : ''}>
               {h.week_count}/{h.target_count} this week

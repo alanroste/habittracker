@@ -4,6 +4,7 @@ import Entry from './pages/Entry'
 import NoToken from './pages/NoToken'
 import Onboarding from './pages/Onboarding'
 import Dashboard from './pages/Dashboard'
+import Todo from './pages/Todo'
 import StatsPage from './pages/StatsPage'
 import Friends from './pages/Friends'
 import FriendDetail from './pages/FriendDetail'
@@ -27,6 +28,7 @@ export default function App() {
       <Route path="/onboarding" element={<Onboarding />} />
       <Route element={<Layout />}>
         <Route path="/" element={<Dashboard />} />
+        <Route path="/todo" element={<Todo />} />
         <Route path="/stats" element={<StatsPage />} />
         <Route path="/friends" element={<Friends />} />
         <Route path="/friends/:id" element={<FriendDetail />} />

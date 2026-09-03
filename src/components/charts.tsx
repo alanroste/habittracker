@@ -1,4 +1,4 @@
-import { addDays, fmt } from '../lib/dates'
+import { addDays, fmt, toDate } from '../lib/dates'
 import type { Stats, Tally } from '../types'
 import { CATEGORIES } from '../types'
 
@@ -44,6 +44,20 @@ export function Legend({ items }: { items: [string, string][] }) {
   )
 }
 
+/**
+ * A single ratio against a limit reads as a meter, not a pie. One track, one fill,
+ * the number stated in text beside it.
+ */
+export function Meter({ pct, tone = 'auto', height = 'h-2' }: { pct: number | null | undefined; tone?: 'auto' | 'neutral'; height?: string }) {
+  const v = Math.max(0, Math.min(100, pct == null ? 100 : pct))
+  const color = tone === 'neutral' ? 'bg-accent' : v >= 90 ? 'bg-good' : v >= 70 ? 'bg-warn' : 'bg-bad'
+  return (
+    <div className={`w-full overflow-hidden rounded-full bg-surface-2 ${height}`} role="presentation">
+      <div className={`${height} rounded-full ${color}`} style={{ width: `${v}%` }} />
+    </div>
+  )
+}
+
 /** Horizontal bar: share of hits / misses / unlogged, plus the % as text. */
 export function TallyBar({ t, label, color }: { t: Tally; label: string; color?: string }) {
   const total = t.hits + t.misses + t.unlogged
@@ -79,45 +93,74 @@ export function CategoryBars({ stats }: { stats: Stats }) {
   )
 }
 
-/** Weekly column chart of daily-habit hits vs misses. Thin marks, one axis, direct labels only on the total. */
-export function WeeklyChart({ stats }: { stats: Stats }) {
-  const weeks = new Map<string, { hits: number; misses: number; unlogged: number }>()
-  for (const d of stats.daily_history) {
-    const ws = weekStartOf(d.date)
-    const w = weeks.get(ws) ?? { hits: 0, misses: 0, unlogged: 0 }
-    w.hits += d.hits; w.misses += d.misses; w.unlogged += d.unlogged
-    weeks.set(ws, w)
+/**
+ * Where the damage is. Successes are near-constant so they carry no signal;
+ * slips are rare, so they are what's worth ranking. Worst first, counts not percentages.
+ */
+export function SlipsByHabit({ stats }: { stats: Stats }) {
+  const rows = stats.habits
+    .map((h) => ({ title: h.title, category: h.category, missed: h.misses, unlogged: h.unlogged, slips: h.misses + h.unlogged }))
+    .filter((r) => r.slips > 0)
+    .sort((a, b) => b.slips - a.slips)
+
+  if (rows.length === 0) {
+    return <p className="py-2 text-sm text-good">Nothing missed yet. Clean sheet.</p>
   }
-  const rows = [...weeks.entries()].sort(([a], [b]) => (a < b ? -1 : 1))
-  if (!rows.length) return <p className="text-sm text-ink-3">No days scored yet.</p>
-  const max = Math.max(1, ...rows.map(([, w]) => w.hits + w.misses + w.unlogged))
+  const max = Math.max(...rows.map((r) => r.slips))
   return (
     <div>
-      <div className="flex items-end gap-2">
-        {rows.map(([ws, w], i) => {
-          const total = w.hits + w.misses + w.unlogged
-          return (
-            <div key={ws} className="flex flex-1 flex-col items-center gap-1" title={`Week of ${fmt(ws)}: ${w.hits} hit, ${w.misses} missed, ${w.unlogged} unlogged`}>
-              <span className="text-[10px] tabular-nums text-ink-3">{total ? Math.round((100 * w.hits) / total) : 0}%</span>
-              <div className="flex w-full max-w-8 flex-col-reverse gap-px overflow-hidden rounded-t-[4px]" style={{ height: `${Math.round((96 * total) / max)}px` }}>
-                <div className="bg-good" style={{ flex: w.hits }} />
-                <div className="bg-bad" style={{ flex: w.misses }} />
-                <div className="bg-ink-3/50" style={{ flex: w.unlogged }} />
-              </div>
-              <span className="text-[10px] text-ink-3">W{i + 1}</span>
+      <div className="space-y-2">
+        {rows.map((r) => (
+          <div key={r.title} className="flex items-center gap-3" title={`${r.missed} missed, ${r.unlogged} never logged`}>
+            <span className="w-32 shrink-0 truncate text-sm" style={{ color: CATEGORIES.find((c) => c.key === r.category)?.color }}>
+              {r.title}
+            </span>
+            <div className="flex h-3 flex-1 gap-px overflow-hidden rounded-[4px] bg-surface-2">
+              <div className="bg-bad" style={{ width: `${(100 * r.missed) / max}%` }} />
+              <div className="bg-ink-3/50" style={{ width: `${(100 * r.unlogged) / max}%` }} />
             </div>
-          )
-        })}
+            <span className="w-6 shrink-0 text-right text-sm font-semibold tabular-nums">{r.slips}</span>
+          </div>
+        ))}
       </div>
-      <Legend items={[['bg-good', 'Hit'], ['bg-bad', 'Missed'], ['bg-ink-3/50', 'Not logged']]} />
+      <Legend items={[['bg-bad', 'Missed on purpose'], ['bg-ink-3/50', 'Never logged']]} />
     </div>
   )
 }
 
-function weekStartOf(s: string) {
-  const [y, m, d] = s.split('-').map(Number)
-  const dt = new Date(Date.UTC(y, m - 1, d))
-  const dow = (dt.getUTCDay() + 6) % 7
-  dt.setUTCDate(dt.getUTCDate() - dow)
-  return dt.toISOString().slice(0, 10)
+const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+
+/** Which day of the week you tend to slip. One series, so no legend — the title names it. */
+export function WeekdayPattern({ stats }: { stats: Stats }) {
+  const buckets = WEEKDAYS.map(() => ({ slips: 0, days: 0 }))
+  for (const d of stats.daily_history) {
+    const idx = (toDate(d.date).getUTCDay() + 6) % 7 // Monday = 0
+    buckets[idx].slips += d.misses + d.unlogged
+    buckets[idx].days += 1
+  }
+  const max = Math.max(1, ...buckets.map((b) => b.slips))
+  const worst = buckets.reduce((best, b, i) => (b.slips > buckets[best].slips ? i : best), 0)
+  const anySlips = buckets.some((b) => b.slips > 0)
+
+  return (
+    <div>
+      <div className="flex items-end gap-1.5">
+        {buckets.map((b, i) => (
+          <div key={WEEKDAYS[i]} className="flex flex-1 flex-col items-center gap-1" title={`${WEEKDAYS[i]}: ${b.slips} slips over ${b.days} ${b.days === 1 ? 'day' : 'days'}`}>
+            <span className="text-[10px] tabular-nums text-ink-3">{b.slips || ''}</span>
+            <div className="flex h-16 w-full items-end">
+              <div
+                className={`w-full rounded-t-[4px] ${anySlips && i === worst ? 'bg-bad' : 'bg-ink-3/50'}`}
+                style={{ height: `${Math.max(3, (100 * b.slips) / max)}%` }}
+              />
+            </div>
+            <span className={`text-[10px] ${anySlips && i === worst ? 'font-semibold text-bad' : 'text-ink-3'}`}>{WEEKDAYS[i][0]}</span>
+          </div>
+        ))}
+      </div>
+      <p className="mt-2 text-xs text-ink-3">
+        {anySlips ? `${WEEKDAYS[worst]} is your weak spot.` : 'No slips on any day yet.'}
+      </p>
+    </div>
+  )
 }

@@ -1,6 +1,7 @@
 export type Category = 'health' | 'mind' | 'business' | 'avoid'
 export type Frequency = 'daily' | 'per_week' | 'limit_week'
 export type LogStatus = 'done' | 'missed'
+export type TimeOfDay = 'morning' | 'afternoon' | 'evening' | 'anytime'
 
 export interface User {
   id: string
@@ -22,6 +23,7 @@ export interface Habit {
   target_count: number
   sort_order: number
   starts_on: string
+  time_of_day: TimeOfDay
 }
 export interface DayHabit extends Habit {
   log: { status: LogStatus; count: number; reason: string | null } | null
@@ -69,6 +71,18 @@ export interface GroupStats {
   categories: GroupCategoryTally[]
   users: GroupUser[]
 }
+export interface GroupHabit {
+  habit_id: string
+  user_id: string
+  user_name: string
+  category: Category
+  title: string
+  frequency: Frequency
+  target_count: number
+  time_of_day: TimeOfDay
+  week_count: number
+  status: 'done' | 'missed' | 'open' | 'over' | 'ok'
+}
 export interface Excuse {
   date: string
   user_id: string
@@ -94,3 +108,12 @@ export const CATEGORIES: { key: Category; label: string; blurb: string; color: s
   { key: 'avoid', label: 'Do Not', blurb: 'Limits. Max 5 games a week, one cheat meal, one rest day.', color: 'var(--color-avoid)' },
 ]
 export const categoryMeta = (c: Category) => CATEGORIES.find((x) => x.key === c)!
+
+/** Time-of-day palette. Validated for colorblind separation and contrast on the dark surface. */
+export const TIMES: { key: TimeOfDay; label: string; blurb: string; color: string; icon: string }[] = [
+  { key: 'morning', label: 'Morning', blurb: 'Before the day gets you', color: 'var(--color-morning)', icon: '\u2600' },
+  { key: 'afternoon', label: 'Afternoon', blurb: 'Midday block', color: 'var(--color-afternoon)', icon: '\u25d0' },
+  { key: 'evening', label: 'Evening', blurb: 'Wind-down', color: 'var(--color-evening)', icon: '\u263e' },
+  { key: 'anytime', label: 'Anytime', blurb: 'No fixed slot', color: 'var(--color-ink-3)', icon: '\u223c' },
+]
+export const timeMeta = (t: TimeOfDay) => TIMES.find((x) => x.key === t) ?? TIMES[3]

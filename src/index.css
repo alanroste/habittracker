@@ -16,6 +16,10 @@
   --color-mind: #8b5cf6;
   --color-business: #f59e0b;
   --color-avoid: #ec4899;
+  /* Time of day. Validated: CVD deltaE 14.5 (deutan), 27.2 normal, all >=3:1 on the dark surface. */
+  --color-morning: #d97706;
+  --color-afternoon: #0e9bbf;
+  --color-evening: #9333ea;
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 

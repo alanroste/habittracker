@@ -506,3 +506,102 @@ begin
 end $$;
 
 grant execute on function group_stats(text), group_reasons(text) to anon;
+
+-- Time-of-day planning: each habit can be slotted into morning / afternoon / evening,
+-- powering the To-Do tab. Existing habits default to 'anytime'.
+
+create type time_of_day as enum ('morning','afternoon','evening','anytime');
+
+alter table habits add column time_of_day time_of_day not null default 'anytime';
+
+create or replace function _habit_json(h habits) returns jsonb
+language sql immutable as $$
+  select jsonb_build_object(
+    'id', h.id, 'category', h.category, 'title', h.title, 'frequency', h.frequency,
+    'target_count', h.target_count, 'sort_order', h.sort_order, 'starts_on', h.starts_on,
+    'time_of_day', h.time_of_day)
+$$;
+
+drop function if exists upsert_habit(text, uuid, habit_category, text, habit_frequency, int, int);
+
+create or replace function upsert_habit(
+  p_token text, p_id uuid, p_category habit_category, p_title text,
+  p_frequency habit_frequency, p_target_count int, p_sort_order int default 0,
+  p_time_of_day time_of_day default 'anytime'
+) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare u users := _auth(p_token); h habits;
+begin
+  if p_title is null or length(trim(p_title)) = 0 then raise exception 'title required'; end if;
+  if p_id is null then
+    insert into habits (user_id, category, title, frequency, target_count, sort_order, starts_on, time_of_day)
+    values (u.id, p_category, trim(p_title), p_frequency, greatest(coalesce(p_target_count,1),1), coalesce(p_sort_order,0),
+            greatest(_today(u.id), u.started_on), coalesce(p_time_of_day, 'anytime'))
+    returning * into h;
+  else
+    update habits set category = p_category, title = trim(p_title), frequency = p_frequency,
+                      target_count = greatest(coalesce(p_target_count,1),1), sort_order = coalesce(p_sort_order, sort_order),
+                      time_of_day = coalesce(p_time_of_day, time_of_day)
+    where id = p_id and user_id = u.id returning * into h;
+    if not found then raise exception 'habit not found'; end if;
+  end if;
+  return _habit_json(h);
+end $$;
+
+create or replace function set_habit_time(p_token text, p_id uuid, p_time_of_day time_of_day) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare u users := _auth(p_token); h habits;
+begin
+  update habits set time_of_day = p_time_of_day where id = p_id and user_id = u.id returning * into h;
+  if not found then raise exception 'habit not found'; end if;
+  return _habit_json(h);
+end $$;
+
+-- Every active habit across the crew, with its owner and current status.
+-- Backs the Group tab drill-down.
+create or replace function group_habits(p_token text) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare u users := _auth(p_token);
+begin
+  return coalesce((
+    select jsonb_agg(j order by j->>'category', j->>'user_name', j->>'title')
+    from (
+      select jsonb_build_object(
+        'habit_id', h.id,
+        'user_id', o.id,
+        'user_name', o.name,
+        'category', h.category,
+        'title', h.title,
+        'frequency', h.frequency,
+        'target_count', h.target_count,
+        'time_of_day', h.time_of_day,
+        'week_count', coalesce(wc.cnt, 0),
+        'status', case
+                    when h.frequency = 'daily' then
+                      case when l.status = 'done' then 'done'
+                           when l.status = 'missed' then 'missed'
+                           else 'open' end
+                    when h.frequency = 'per_week' then
+                      case when coalesce(wc.cnt, 0) >= h.target_count then 'done' else 'open' end
+                    else
+                      case when coalesce(wc.cnt, 0) > h.target_count then 'over' else 'ok' end
+                  end
+      ) as j
+      from habits h
+      join users o on o.id = h.user_id
+      left join habit_logs l on l.habit_id = h.id and l.log_date = _today(o.id)
+      left join lateral (
+        select sum(x.count) cnt from habit_logs x
+        where x.habit_id = h.id and x.status = 'done'
+          and x.log_date between _week_start(_today(o.id)) and _week_start(_today(o.id)) + 6
+      ) wc on true
+      where h.is_active and o.onboarded
+    ) t
+  ), '[]'::jsonb);
+end $$;
+
+grant execute on function
+  upsert_habit(text, uuid, habit_category, text, habit_frequency, int, int, time_of_day),
+  set_habit_time(text, uuid, time_of_day),
+  group_habits(text)
+to anon;

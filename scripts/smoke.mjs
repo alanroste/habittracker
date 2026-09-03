@@ -7,14 +7,14 @@ const TOKEN = 'f7f8c85f22984b998e9ca4f73b3ea4ae'
 const ME = { id: 'u4', name: 'Alan', timezone: 'America/New_York', started_on: '2026-08-27', challenge_days: 70, onboarded: true }
 const today = '2026-09-02'
 const habits = [
-  { id: 'h1', category: 'health', title: 'Supplements', frequency: 'daily', target_count: 1, sort_order: 0, starts_on: ME.started_on },
-  { id: 'h2', category: 'health', title: 'Gym', frequency: 'per_week', target_count: 4, sort_order: 1, starts_on: ME.started_on },
-  { id: 'h3', category: 'health', title: 'Cardio', frequency: 'per_week', target_count: 3, sort_order: 2, starts_on: ME.started_on },
-  { id: 'h4', category: 'mind', title: 'Read 20 pages', frequency: 'daily', target_count: 1, sort_order: 0, starts_on: ME.started_on },
-  { id: 'h5', category: 'mind', title: 'Meditate', frequency: 'daily', target_count: 1, sort_order: 1, starts_on: ME.started_on },
-  { id: 'h6', category: 'business', title: '10 cold emails', frequency: 'daily', target_count: 1, sort_order: 0, starts_on: ME.started_on },
-  { id: 'h7', category: 'avoid', title: 'League games', frequency: 'limit_week', target_count: 5, sort_order: 0, starts_on: ME.started_on },
-  { id: 'h8', category: 'avoid', title: 'Cheat meals', frequency: 'limit_week', target_count: 1, sort_order: 1, starts_on: ME.started_on },
+  { id: 'h1', category: 'health', title: 'Supplements', frequency: 'daily', target_count: 1, sort_order: 0, starts_on: ME.started_on, time_of_day: 'morning' },
+  { id: 'h2', category: 'health', title: 'Gym', frequency: 'per_week', target_count: 4, sort_order: 1, starts_on: ME.started_on, time_of_day: 'evening' },
+  { id: 'h3', category: 'health', title: 'Cardio', frequency: 'per_week', target_count: 3, sort_order: 2, starts_on: ME.started_on, time_of_day: 'afternoon' },
+  { id: 'h4', category: 'mind', title: 'Read 20 pages', frequency: 'daily', target_count: 1, sort_order: 0, starts_on: ME.started_on, time_of_day: 'morning' },
+  { id: 'h5', category: 'mind', title: 'Meditate', frequency: 'daily', target_count: 1, sort_order: 1, starts_on: ME.started_on, time_of_day: 'evening' },
+  { id: 'h6', category: 'business', title: '10 cold emails', frequency: 'daily', target_count: 1, sort_order: 0, starts_on: ME.started_on, time_of_day: 'morning' },
+  { id: 'h7', category: 'avoid', title: 'League games', frequency: 'limit_week', target_count: 5, sort_order: 0, starts_on: ME.started_on, time_of_day: 'morning' },
+  { id: 'h8', category: 'avoid', title: 'Cheat meals', frequency: 'limit_week', target_count: 1, sort_order: 1, starts_on: ME.started_on, time_of_day: 'evening' },
 ]
 const dayView = habits.map((h, i) => ({
   ...h,
@@ -73,6 +73,14 @@ const GROUP_STATS = {
     { id: 'u3', name: 'Friend 3', onboarded: false, overall: { hits: 0, misses: 0, unlogged: 0, pending: 0, pct: 100 }, categories: [] },
   ],
 }
+const GROUP_HABITS = [
+  { habit_id: 'h1', user_id: 'u4', user_name: 'Alan', category: 'health', title: 'Supplements', frequency: 'daily', target_count: 1, time_of_day: 'morning', week_count: 1, status: 'done' },
+  { habit_id: 'h2', user_id: 'u4', user_name: 'Alan', category: 'health', title: 'Gym', frequency: 'per_week', target_count: 4, time_of_day: 'evening', week_count: 2, status: 'open' },
+  { habit_id: 'g1', user_id: 'u1', user_name: 'Marco', category: 'health', title: 'Cold shower', frequency: 'daily', target_count: 1, time_of_day: 'morning', week_count: 0, status: 'missed' },
+  { habit_id: 'g2', user_id: 'u1', user_name: 'Marco', category: 'mind', title: 'Chess', frequency: 'per_week', target_count: 3, time_of_day: 'anytime', week_count: 1, status: 'open' },
+  { habit_id: 'g3', user_id: 'u2', user_name: 'Dev', category: 'business', title: 'Cold emails', frequency: 'daily', target_count: 1, time_of_day: 'afternoon', week_count: 1, status: 'done' },
+  { habit_id: 'g4', user_id: 'u1', user_name: 'Marco', category: 'avoid', title: 'League games', frequency: 'limit_week', target_count: 5, time_of_day: 'anytime', week_count: 7, status: 'over' },
+]
 const GROUP_REASONS = [
   { date: '2026-09-02', user_id: 'u4', user_name: 'Alan', habit: 'Read 20 pages', category: 'mind', reason: "I'm a bum" },
   { date: '2026-09-01', user_id: 'u1', user_name: 'Marco', habit: 'Meditate', category: 'mind', reason: 'Forgot' },
@@ -107,6 +115,8 @@ async function mock(route) {
     case 'friends': return json(FRIENDS)
     case 'group_stats': return json(GROUP_STATS)
     case 'group_reasons': return json(GROUP_REASONS)
+    case 'group_habits': return json(GROUP_HABITS)
+    case 'set_habit_time': return json({ ...habits[0], time_of_day: body.p_time_of_day })
     default: return err('unknown fn ' + fn)
   }
 }
@@ -155,10 +165,23 @@ await page.getByRole('button', { name: 'Previous day' }).click(); await page.wai
 expect(await page.getByText('Yesterday').isVisible(), 'yesterday label')
 await page.getByText('Back to today').click()
 
+// 4b. to-do tab
+await page.getByRole('link', { name: 'To-Do' }).click(); await page.waitForTimeout(400); await shot('07b-todo')
+expect(await page.getByRole('heading', { name: 'To-do today' }).isVisible(), 'todo heading')
+expect(await page.getByText('MORNING').isVisible(), 'morning section')
+expect(await page.getByText('EVENING').isVisible(), 'evening section')
+await page.getByRole('button', { name: /Change when/ }).first().click(); await page.waitForTimeout(300)
+await page.screenshot({ path: `${out}/07c-todo-move.png` })
+expect(await page.getByRole('dialog').isVisible(), 'time-of-day sheet opens')
+await page.getByRole('button', { name: /Afternoon/ }).click(); await page.waitForTimeout(300)
+expect(calls.includes('set_habit_time'), 'set_habit_time called')
+
 // 5. stats
 await page.getByRole('link', { name: 'Stats' }).click(); await page.waitForTimeout(400); await shot('08-stats')
 expect(await page.getByText('70-day map').isVisible(), 'heatmap')
 expect(await page.getByText('Excuses').isVisible(), 'excuses')
+expect(await page.getByText("Where you're slipping").isVisible(), 'slips section')
+expect(await page.getByText('Your weak day').isVisible(), 'weekday pattern')
 
 // 6. friends: leaderboard, group, and I'm a bum tabs
 await page.getByRole('link', { name: 'Friends' }).click(); await page.waitForTimeout(400); await shot('09-friends')
@@ -166,7 +189,10 @@ expect(await page.getByText('Marco').isVisible(), 'friend row')
 
 await page.getByRole('button', { name: 'Group' }).click(); await page.waitForTimeout(400); await shot('09b-friends-group')
 expect(await page.getByText('The group, combined').isVisible(), 'group combined section')
-expect(await page.getByText('ranked by on-track %').first().isVisible(), 'per-category ranking')
+await page.getByRole('button', { name: /Health.*see habits/s }).click(); await page.waitForTimeout(400)
+expect(await page.getByText('Cold shower').isVisible(), 'drill-down shows a friend habit')
+expect(await page.getByRole('button', { name: /Health.*hide habits/s }).isVisible(), 'drill-down toggles open')
+await shot('09b2-group-drilldown')
 
 await page.getByRole('button', { name: "I'm a Bum" }).click(); await page.waitForTimeout(400); await shot('09c-friends-bum')
 expect(await page.getByText("I'm a bum").first().isVisible(), 'excuse text shown')

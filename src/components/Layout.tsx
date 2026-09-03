@@ -1,8 +1,9 @@
 import { NavLink, Outlet } from 'react-router-dom'
-import { FriendsIcon, SettingsIcon, StatsIcon, TodayIcon } from './icons'
+import { FriendsIcon, SettingsIcon, StatsIcon, TodayIcon, TodoIcon } from './icons'
 
 const tabs = [
   { to: '/', label: 'Today', Icon: TodayIcon, end: true },
+  { to: '/todo', label: 'To-Do', Icon: TodoIcon, end: false },
   { to: '/stats', label: 'Stats', Icon: StatsIcon, end: false },
   { to: '/friends', label: 'Friends', Icon: FriendsIcon, end: false },
   { to: '/settings', label: 'Settings', Icon: SettingsIcon, end: false },
@@ -22,7 +23,7 @@ export default function Layout() {
               to={to}
               end={end}
               className={({ isActive }) =>
-                `group relative flex flex-1 flex-col items-center gap-0.5 rounded-[20px] py-2.5 text-[11px] font-medium transition-colors ${
+                `group relative flex flex-1 flex-col items-center gap-0.5 rounded-[20px] py-2.5 text-[10px] font-medium sm:text-[11px] transition-colors ${
                   isActive ? 'text-ink' : 'text-ink-3 hover:text-ink-2'
                 }`
               }

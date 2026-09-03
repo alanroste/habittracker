@@ -54,3 +54,23 @@ export function SettingsIcon(props: IconProps) {
     </svg>
   )
 }
+
+export function TodoIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M4 6.5l1.75 1.75L9 5" />
+      <path d="M4 13l1.75 1.75L9 11.5" />
+      <path d="M4 19.5l1.75 1.75L9 18" />
+      <path d="M12.5 6.75H20M12.5 13.25H20M12.5 19.75H20" />
+    </svg>
+  )
+}
+
+export function ClockIcon(props: IconProps) {
+  return (
+    <svg {...base} width={18} height={18} {...props}>
+      <circle cx="12" cy="12" r="8.25" />
+      <path d="M12 7.75V12l2.75 1.75" />
+    </svg>
+  )
+}

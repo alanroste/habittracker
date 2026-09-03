@@ -1,6 +1,6 @@
 import { supabase } from './supabase'
 import { getToken } from './session'
-import type { Category, DayHabit, Excuse, Frequency, Friend, GroupStats, Habit, LogStatus, Me, Stats } from '../types'
+import type { Category, DayHabit, Excuse, Frequency, Friend, GroupHabit, GroupStats, Habit, LogStatus, Me, Stats, TimeOfDay } from '../types'
 
 async function rpc<T>(fn: string, args: Record<string, unknown> = {}, token = getToken()): Promise<T> {
   if (!token) throw new Error('No login token. Open your personal link.')
@@ -22,11 +22,13 @@ export const api = {
   updateProfile: (name: string, timezone: string) => rpc<Me>('update_profile', { p_name: name, p_timezone: timezone }),
   completeOnboarding: () => rpc<Me>('complete_onboarding'),
   myHabits: () => rpc<Habit[]>('my_habits'),
-  upsertHabit: (h: { id?: string | null; category: Category; title: string; frequency: Frequency; target_count: number; sort_order?: number }) =>
+  upsertHabit: (h: { id?: string | null; category: Category; title: string; frequency: Frequency; target_count: number; sort_order?: number; time_of_day?: TimeOfDay }) =>
     rpc<Habit>('upsert_habit', {
       p_id: h.id ?? null, p_category: h.category, p_title: h.title,
       p_frequency: h.frequency, p_target_count: h.target_count, p_sort_order: h.sort_order ?? 0,
+      p_time_of_day: h.time_of_day ?? 'anytime',
     }),
+  setHabitTime: (id: string, time: TimeOfDay) => rpc<Habit>('set_habit_time', { p_id: id, p_time_of_day: time }),
   deleteHabit: (id: string) => rpc<void>('delete_habit', { p_id: id }),
   logHabit: (habitId: string, date: string, status: LogStatus, reason?: string | null, count = 1) =>
     rpc<unknown>('log_habit', { p_habit_id: habitId, p_date: date, p_status: status, p_reason: reason ?? null, p_count: count }),
@@ -36,4 +38,5 @@ export const api = {
   friends: () => rpc<Friend[]>('friends'),
   groupStats: () => rpc<GroupStats>('group_stats'),
   groupReasons: () => rpc<Excuse[]>('group_reasons'),
+  groupHabits: () => rpc<GroupHabit[]>('group_habits'),
 }
