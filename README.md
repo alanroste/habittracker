@@ -82,5 +82,8 @@ onboarding is completed.
   (`npx vite preview` first)
 - `node scripts/auth-check.mjs <url>` — proves the login link still works when the browser
   blocks storage (private mode / in-app browsers)
-- `node scripts/slice-characters.mjs [set]` — re-cut the character tiles from `art-source/`
+- `node scripts/slice-characters.mjs [set]` — re-cut the character tiles from the contact
+  sheets in `art-source/`
+- `node scripts/import-panels.mjs` — replace tiles with full-resolution panels dropped in
+  `art-source/panels/<set>/` (see that folder's README for filenames)
 - `node scripts/character-states.mjs <url> <outDir>` — render the character card across states
