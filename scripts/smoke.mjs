@@ -88,9 +88,9 @@ const GROUP_REASONS = [
   { date: '2026-08-29', user_id: 'u4', user_name: 'Alan', habit: 'Meditate', category: 'mind', reason: 'No time' },
 ]
 const FRIENDS = [
-  { id: 'u1', name: 'Marco', timezone: 'UTC', started_on: '2026-08-27', challenge_days: 70, onboarded: true, pct: 96.4, hits: 27, misses: 1, unlogged: 0, day_number: 7, habit_count: 6 },
-  { id: 'u2', name: 'Dev', timezone: 'UTC', started_on: '2026-08-27', challenge_days: 70, onboarded: true, pct: 71, hits: 20, misses: 6, unlogged: 2, day_number: 7, habit_count: 5 },
-  { id: 'u3', name: 'Friend 3', timezone: 'UTC', started_on: '2026-09-03', challenge_days: 70, onboarded: false, pct: 100, hits: 0, misses: 0, unlogged: 0, day_number: 1, habit_count: 0 },
+  { id: 'u1', name: 'Marco', timezone: 'UTC', started_on: '2026-08-27', challenge_days: 70, onboarded: true, pct: 96.4, hits: 27, misses: 1, unlogged: 0, day_number: 7, habit_count: 6, character_set: 'batman', streak: { current: 9, best: 12 }, missed_run: 0 },
+  { id: 'u2', name: 'Dev', timezone: 'UTC', started_on: '2026-08-27', challenge_days: 70, onboarded: true, pct: 71, hits: 20, misses: 6, unlogged: 2, day_number: 7, habit_count: 5, character_set: 'snoop', streak: { current: 0, best: 4 }, missed_run: 3 },
+  { id: 'u3', name: 'Friend 3', timezone: 'UTC', started_on: '2026-09-03', challenge_days: 70, onboarded: false, pct: 100, hits: 0, misses: 0, unlogged: 0, day_number: 1, habit_count: 0, character_set: 'luffy', streak: { current: 0, best: 0 }, missed_run: 0 },
 ]
 
 let onboarded = true
@@ -117,6 +117,8 @@ async function mock(route) {
     case 'group_stats': return json(GROUP_STATS)
     case 'group_reasons': return json(GROUP_REASONS)
     case 'group_habits': return json(GROUP_HABITS)
+    case 'list_members': return json([{ id: 'u4', name: 'Alan', character_set: 'luffy' }, { id: 'u1', name: 'Marco', character_set: 'batman' }])
+    case 'sign_in_as': return json(ME)
     case 'set_habit_time': return json({ ...habits[0], time_of_day: body.p_time_of_day })
     default: return err('unknown fn ' + fn)
   }
@@ -134,7 +136,7 @@ const expect = (cond, msg) => { if (!cond) { errors.push('ASSERT: ' + msg) } }
 
 // 1. no token
 await page.goto(base + '/'); await page.waitForTimeout(300); await shot('00-no-token')
-expect(await page.getByText('Open your personal link').isVisible(), 'no-token screen')
+expect(await page.getByText('Who are you?').isVisible(), 'no-token screen offers the name picker')
 
 // 2. bad link
 await page.goto(base + '/u/badtoken'); await page.waitForTimeout(500); await shot('01-bad-link')
@@ -195,6 +197,7 @@ expect(await page.getByText('Your weak day').isVisible(), 'weekday pattern')
 // 6. friends: leaderboard, group, and I'm a bum tabs
 await page.getByRole('link', { name: 'Friends' }).click(); await page.waitForTimeout(400); await shot('09-friends')
 expect(await page.getByText('Marco').isVisible(), 'friend row')
+expect(await page.locator('img[alt="Gadget Goblin"]').first().isVisible(), "friend's character shown on the leaderboard")
 
 await page.getByRole('button', { name: 'Group' }).click(); await page.waitForTimeout(400); await shot('09b-friends-group')
 expect(await page.getByText('The group, combined').isVisible(), 'group combined section')

@@ -1,6 +1,6 @@
 import { supabase } from './supabase'
 import { getToken } from './session'
-import type { Category, DayHabit, Excuse, Frequency, Friend, GroupHabit, GroupStats, Habit, LogStatus, Me, Stats, TimeOfDay } from '../types'
+import type { Category, DayHabit, Excuse, Frequency, Friend, GroupHabit, GroupStats, Habit, LogStatus, Me, Member, Stats, TimeOfDay } from '../types'
 
 async function rpc<T>(fn: string, args: Record<string, unknown> = {}, token = getToken()): Promise<T> {
   if (!token) throw new Error('No login token. Open your personal link.')
@@ -15,6 +15,18 @@ function friendly(msg: string) {
   if (/cannot log the future/i.test(msg)) return "You can't log a day that hasn't happened yet."
   if (/Failed to fetch/i.test(msg)) return 'No connection. Try again.'
   return msg
+}
+
+/** The only two calls that work without a token: the name sign-in fallback. */
+export async function listMembers(): Promise<Member[]> {
+  const { data, error } = await supabase.rpc('list_members')
+  if (error) throw new Error(friendly(error.message))
+  return (data ?? []) as Member[]
+}
+export async function signInAs(userId: string): Promise<Me> {
+  const { data, error } = await supabase.rpc('sign_in_as', { p_user_id: userId })
+  if (error) throw new Error(friendly(error.message))
+  return data as Me
 }
 
 export const api = {

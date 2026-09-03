@@ -630,3 +630,112 @@ begin
 end $$;
 
 grant execute on function set_character(text, character_set) to anon;
+
+-- Streak / missed-run helpers, so the friends list can show each person's
+-- character without running the (expensive) stats function once per friend.
+
+create or replace function _missed_run(p_user_id uuid) returns int
+language plpgsql stable security definer set search_path = public as $$
+declare r record; run int := 0; t date;
+begin
+  t := least(_today(p_user_id), _end_date(p_user_id));
+  for r in
+    select period_start as d,
+           count(*) filter (where outcome = 'miss') misses,
+           count(*) filter (where outcome = 'unlogged') unlogged,
+           count(*) filter (where outcome = 'pending') pending
+    from _score_items(p_user_id)
+    where frequency = 'daily'
+    group by period_start
+    order by period_start desc
+  loop
+    if r.d = t then
+      if r.misses > 0 then run := run + 1; continue; end if;
+      if r.pending > 0 then continue; end if;
+      exit;
+    end if;
+    if r.misses > 0 or r.unlogged > 0 then run := run + 1; else exit; end if;
+  end loop;
+  return run;
+end $$;
+
+create or replace function _streak(p_user_id uuid) returns jsonb
+language plpgsql stable security definer set search_path = public as $$
+declare r record; run int := 0; best int := 0; t date;
+begin
+  t := least(_today(p_user_id), _end_date(p_user_id));
+  for r in
+    select period_start as d,
+           count(*) filter (where outcome = 'hit') hits,
+           count(*) filter (where outcome = 'miss') misses,
+           count(*) filter (where outcome = 'unlogged') unlogged,
+           count(*) filter (where outcome = 'pending') pending
+    from _score_items(p_user_id)
+    where frequency = 'daily'
+    group by period_start
+    order by period_start
+  loop
+    if r.misses = 0 and r.unlogged = 0 and r.pending = 0 and r.hits > 0 then
+      run := run + 1;
+    elsif r.d = t and r.pending > 0 and r.misses = 0 and r.unlogged = 0 then
+      null;
+    else
+      run := 0;
+    end if;
+    best := greatest(best, run);
+  end loop;
+  return jsonb_build_object('current', run, 'best', best);
+end $$;
+
+revoke execute on function _missed_run(uuid), _streak(uuid) from public, anon, authenticated;
+
+-- friends() now carries streak + missed_run so each row can render its character.
+create or replace function friends(p_token text) returns jsonb
+language plpgsql stable security definer set search_path = public as $$
+declare u users := _auth(p_token);
+begin
+  return coalesce((
+    select jsonb_agg(j order by (j->>'pct')::numeric desc, j->>'name')
+    from (
+      select _user_json(o) || jsonb_build_object(
+               'pct', _pct(s.hits, s.misses, s.unlogged),
+               'hits', s.hits, 'misses', s.misses, 'unlogged', s.unlogged,
+               'day_number', least(greatest(least(_today(o.id), _end_date(o.id)) - o.started_on + 1, 0), o.challenge_days),
+               'habit_count', (select count(*) from habits h where h.user_id = o.id and h.is_active),
+               'streak', _streak(o.id),
+               'missed_run', _missed_run(o.id)
+             ) as j
+      from users o
+      cross join lateral (
+        select count(*) filter (where outcome = 'hit') hits,
+               count(*) filter (where outcome = 'miss') misses,
+               count(*) filter (where outcome = 'unlogged') unlogged
+        from _score_items(o.id)) s
+      where o.id <> u.id
+    ) x
+  ), '[]'::jsonb);
+end $$;
+
+-- Name-based sign-in. An installed home-screen icon can open without a token
+-- (its start_url predates the per-user manifest, or storage was cleared) and
+-- there is no link to tap inside the app, so this is the way back in.
+--
+-- Deliberate trade-off for a private group: anyone who reaches the site can sign
+-- in as any member. Drop these two functions to require personal links again.
+create or replace function list_members() returns jsonb
+language sql stable security definer set search_path = public as $$
+  select coalesce(jsonb_agg(jsonb_build_object('id', id, 'name', name, 'character_set', character_set)
+                            order by onboarded desc, name), '[]'::jsonb)
+  from users
+$$;
+
+create or replace function sign_in_as(p_user_id uuid) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare u users;
+begin
+  select * into u from users where id = p_user_id;
+  if not found then raise exception 'no such member'; end if;
+  return _user_json(u) || jsonb_build_object('today', _today(u.id), 'login_token', u.login_token);
+end $$;
+
+grant execute on function list_members(), sign_in_as(uuid) to anon;

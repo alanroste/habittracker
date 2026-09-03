@@ -100,6 +100,13 @@ export interface Friend extends User {
   unlogged: number
   day_number: number
   habit_count: number
+  streak: { current: number; best: number }
+  missed_run: number
+}
+export interface Member {
+  id: string
+  name: string
+  character_set: string
 }
 
 export const CATEGORIES: { key: Category; label: string; blurb: string; color: string }[] = [

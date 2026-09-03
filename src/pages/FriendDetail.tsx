@@ -6,6 +6,7 @@ import { addDays, dayLabel } from '../lib/dates'
 import { ErrorNote, Spinner } from '../components/ui'
 import DayGrid from '../components/DayGrid'
 import StatsView from '../components/StatsView'
+import CharacterCard from '../components/CharacterCard'
 
 export default function FriendDetail() {
   const { id } = useParams()
@@ -27,6 +28,7 @@ export default function FriendDetail() {
         <Link to="/friends" className="text-ink-3">‹ Friends</Link>
       </div>
       <h1 className="text-xl font-bold">{s.user.name}</h1>
+      <CharacterCard stats={s} />
 
       <div className="flex items-center justify-between px-1">
         <button disabled={!canBack} onClick={() => d && setDate(addDays(d, -1))} className="rounded-full px-3 py-1 text-ink-2 disabled:opacity-30" aria-label="Previous day">‹</button>

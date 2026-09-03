@@ -161,6 +161,32 @@ function tierFor(tiers: Tier[], value: number): { tier: Tier; index: number } {
   return { tier: tiers[index], index }
 }
 
+/** Build the state from raw numbers — used for friends, where we only have a summary. */
+export function characterStateFrom(
+  characterSet: string | null | undefined,
+  streak: number,
+  missedRun: number,
+): CharacterState {
+  const set = getSet(characterSet)
+  if (missedRun > 0) {
+    const { tier, index } = tierFor(set.depleted, missedRun)
+    return { mode: 'depleted', set, tier, daysMissed: missedRun, level: index + 1 }
+  }
+  const { tier, index } = tierFor(set.levels, streak)
+  const next = set.levels[index + 1] ?? null
+  const span = next ? next.at - tier.at : 1
+  return {
+    mode: 'powered',
+    set,
+    tier,
+    level: index + 1,
+    streak,
+    next,
+    toNext: next ? next.at - streak : 0,
+    progress: next ? Math.min(1, (streak - tier.at) / span) : 1,
+  }
+}
+
 export function characterState(stats: Stats): CharacterState {
   const set = getSet(stats.user.character_set)
   const missed = consecutiveMissedDays(stats)

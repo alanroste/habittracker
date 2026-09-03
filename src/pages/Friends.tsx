@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { api } from '../lib/api'
 import { Card, ErrorNote, Pct, Spinner } from '../components/ui'
+import { artUrl, characterStateFrom } from '../lib/character'
 import GroupStatsView from '../components/GroupStats'
 import ImABum from '../components/ImABum'
 
@@ -43,22 +44,45 @@ export default function Friends() {
           {friends.error && <ErrorNote msg={(friends.error as Error).message} />}
           {friends.data && (
             <div className="space-y-2">
-              {friends.data.map((f, i) => (
-                <Link key={f.id} to={f.onboarded ? `/friends/${f.id}` : '#'} className={!f.onboarded ? 'pointer-events-none' : ''}>
-                  <Card className="flex items-center gap-3 p-4">
-                    <div className="w-6 text-center text-lg font-bold text-ink-3">{f.onboarded ? i + 1 : '–'}</div>
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate font-semibold">{f.name}</div>
-                      <div className="text-xs text-ink-3">
-                        {f.onboarded
-                          ? `Day ${f.day_number} · ${f.habit_count} habits · ${f.hits} hit, ${f.misses} missed${f.unlogged ? `, ${f.unlogged} unlogged` : ''}`
-                          : 'Has not started yet'}
+              {friends.data.map((f, i) => {
+                const st = characterStateFrom(f.character_set, f.streak?.current ?? 0, f.missed_run ?? 0)
+                const down = st.mode === 'depleted'
+                return (
+                  <Link key={f.id} to={f.onboarded ? `/friends/${f.id}` : '#'} className={!f.onboarded ? 'pointer-events-none' : ''}>
+                    <Card className="flex items-stretch gap-3 overflow-hidden p-0">
+                      {f.onboarded ? (
+                        <img
+                          src={artUrl(st.set.key, st.tier.key)}
+                          alt={st.tier.name}
+                          loading="lazy"
+                          className="h-24 w-20 shrink-0 object-cover"
+                        />
+                      ) : (
+                        <div className="grid h-24 w-20 shrink-0 place-items-center bg-surface-2 text-ink-3">–</div>
+                      )}
+                      <div className="flex min-w-0 flex-1 items-center gap-3 py-3 pr-4">
+                        <div className="w-4 text-center text-sm font-bold text-ink-3">{f.onboarded ? i + 1 : ''}</div>
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate font-semibold">{f.name}</div>
+                          {f.onboarded ? (
+                            <>
+                              <div className={`truncate text-xs font-medium ${down ? 'text-bad' : 'text-good'}`}>
+                                {down ? `${st.daysMissed}d missed · ${st.tier.name}` : `${st.streak}d streak · ${st.tier.name}`}
+                              </div>
+                              <div className="truncate text-xs text-ink-3">
+                                Day {f.day_number} · {f.hits} hit, {f.misses} missed{f.unlogged ? `, ${f.unlogged} unlogged` : ''}
+                              </div>
+                            </>
+                          ) : (
+                            <div className="text-xs text-ink-3">Has not started yet</div>
+                          )}
+                        </div>
+                        {f.onboarded ? <Pct value={f.pct} /> : <span className="text-ink-3">—</span>}
                       </div>
-                    </div>
-                    {f.onboarded ? <Pct value={f.pct} /> : <span className="text-ink-3">—</span>}
-                  </Card>
-                </Link>
-              ))}
+                    </Card>
+                  </Link>
+                )
+              })}
               {friends.data.length === 0 && <p className="text-center text-sm text-ink-3">Nobody else here yet.</p>}
             </div>
           )}

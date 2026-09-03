@@ -20,6 +20,8 @@ async function run(label, { blockStorage }, fn) {
         ? json(ME)
         : route.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ message: 'invalid token' }) })
     }
+    if (fn2 === 'list_members') return json([{ id: 'u4', name: 'Alan', character_set: 'luffy' }, { id: 'u9', name: 'Samy', character_set: 'batman' }])
+    if (fn2 === 'sign_in_as') return json(ME)
     if (fn2 === 'stats') return json({ user: ME, today: ME.today, day_number: 7, days_total: 70, days_left: 63, end_date: '2026-11-04', days_logged: 5, days_elapsed: 7, missed_days: [], overall: { hits: 5, misses: 0, unlogged: 0, pending: 0, pct: 100 }, categories: [], habits: [], daily_history: [], weekly_history: [], streak: { current: 4, best: 4 }, reasons: [] })
     return json([])
   })
@@ -45,7 +47,7 @@ await run('normal', {}, async (page) => {
   await page.goto(`${base}/u/${TOKEN}`)
   await page.waitForTimeout(700)
   expect(await page.getByRole('heading', { name: 'To-do today' }).isVisible(), 'normal: lands on the app')
-  expect(!(await page.getByText('Open your personal link').isVisible().catch(() => false)), 'normal: no NoToken screen')
+  expect(!(await page.getByText('Who are you?').isVisible().catch(() => false)), 'normal: no sign-in screen')
 })
 
 // 2. Storage blocked: this is the case that used to fail outright.
@@ -69,11 +71,16 @@ await run('bad token', {}, async (page) => {
   expect(await page.getByText('That link is not valid.').isVisible(), 'bad token: surfaces the server reason')
 })
 
-// 4. Bare domain with nothing stored still guides you.
+// 4. Bare domain with nothing stored — what an installed icon hits. The name
+//    picker has to get you back in, since there is no link to tap in there.
 await run('no token', { blockStorage: true }, async (page) => {
   await page.goto(base + '/')
-  await page.waitForTimeout(500)
-  expect(await page.getByText('Open your personal link').isVisible(), 'no token: prompts for the link')
+  await page.waitForTimeout(600)
+  expect(await page.getByText('Who are you?').isVisible(), 'no token: offers the name picker')
+  expect(await page.getByRole('button', { name: /Alan/ }).isVisible(), 'no token: lists members by name')
+  await page.getByRole('button', { name: /Alan/ }).click()
+  await page.waitForTimeout(900)
+  expect(await page.getByRole('heading', { name: 'To-do today' }).isVisible(), 'no token: picking a name signs you in')
 })
 
 await b.close()

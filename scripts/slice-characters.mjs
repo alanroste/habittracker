@@ -13,7 +13,9 @@
  * Coordinates are FRACTIONS of each source image, so they survive any resize.
  * Sheets live in art-source/ (kept out of public/ so 9MB isn't served).
  * Run it, open art-source/_preview.png, nudge, re-run.
- * Tiles are written as WebP — these are painterly images and PNG is ~6x larger.
+ * Tiles are written as WebP at high quality — these panels are only ~250px wide
+ * in the source sheets and get upscaled on screen, so compression artifacts show.
+ * Bigger source sheets are the only real way to sharpen them further.
  */
 import { chromium } from 'playwright'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
@@ -122,13 +124,14 @@ for (const [setName, set] of Object.entries(wanted)) {
       const ctx = c.getContext('2d')
       ctx.imageSmoothingQuality = 'high'
       ctx.drawImage(window.__img, b.x, b.y, b.w, b.h, 0, 0, c.width, c.height)
-      return c.toDataURL('image/webp', 0.82)
+      return c.toDataURL('image/webp', 0.95)
     }, { ...box, max: t.maxWidth })
     const file = resolve(dir, `${t.name}.webp`)
     writeFileSync(file, Buffer.from(png.split(',')[1], 'base64'))
-    written.push({ set: setName, name: t.name, file })
+    written.push({ set: setName, name: t.name, file, w: box.w, h: box.h })
   }
-  console.log(`  wrote ${tilesFor(set).length} tiles -> public/characters/${setName}/`)
+  const lv = written.filter((w) => w.set === setName && w.name === 'level-1')[0]
+  console.log(`  wrote ${tilesFor(set).length} tiles -> public/characters/${setName}/  (panel ${lv?.w}x${lv?.h}px)`)
 }
 
 // Labelled contact sheet so alignment is checkable in one look.
