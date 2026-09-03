@@ -9,6 +9,7 @@ import { Card, ErrorNote, Pct, Spinner } from '../components/ui'
 import DayGrid from '../components/DayGrid'
 import ReasonSheet from '../components/ReasonSheet'
 import CalendarStrip from '../components/CalendarStrip'
+import InstallBanner from '../components/InstallBanner'
 import type { RowActions } from '../components/HabitRow'
 
 export default function Dashboard() {
@@ -47,6 +48,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-3">
+      <InstallBanner />
       {s && (
         <Card className="p-4">
           <div className="flex items-start justify-between">

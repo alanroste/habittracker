@@ -5,6 +5,16 @@
 [build.environment]
   NODE_VERSION = "22"
 
+[functions]
+  directory = "netlify/functions"
+
+# Per-user manifest so "Add to Home Screen" bakes in /u/<token> as the
+# install's start_url. Must come before the SPA catch-all below.
+[[redirects]]
+  from = "/app.webmanifest"
+  to = "/.netlify/functions/manifest"
+  status = 200
+
 # SPA fallback so /u/<token>, /stats etc. all load index.html
 [[redirects]]
   from = "/*"

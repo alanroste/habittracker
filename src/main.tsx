@@ -5,6 +5,9 @@ import { BrowserRouter } from 'react-router-dom'
 import './index.css'
 import App from './App'
 import { SessionProvider } from './lib/SessionContext'
+import { syncManifestToToken } from './lib/manifest'
+
+syncManifestToToken()
 
 const qc = new QueryClient({
   defaultOptions: { queries: { refetchOnWindowFocus: true, retry: 1, staleTime: 15_000 } },

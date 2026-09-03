@@ -21,7 +21,24 @@ npm run dev
 
 1. Netlify → *Add new project* → *Import from Git* → pick this repo.
 2. Build settings are read from `netlify.toml` (`npm run build`, publish `dist`). Nothing else to set.
-3. Open `https://<your-site>.netlify.app/u/<login_token>` on each phone, then *Share → Add to Home Screen*.
+3. Open `https://<your-site>.netlify.app/u/<login_token>` on each phone, then install it (see below).
+
+## Installing as an app
+
+Each person should install the app from **their own link** (`/u/<login_token>`), not the bare
+domain — that's what lets the installed icon remember who they are.
+
+- **iPhone (Safari):** open your link, tap Share, then **Add to Home Screen**.
+- **Android (Chrome):** open your link, tap the ⋮ menu, then **Install app** (or use the install
+  banner shown on the dashboard, which offers a one-tap Install button when the browser supports it).
+
+Under the hood: `netlify/functions/manifest.cjs` serves a web app manifest per visitor, at
+`/app.webmanifest?u=<token>`, with that user's `/u/<token>` baked in as `start_url`. A small script
+(`src/lib/manifest.ts`, run at startup) points the page's `<link rel="manifest">` at that URL once a
+token is known. Without this, every install would open the generic `/` with no way to tell users
+apart — and on iOS, an installed home-screen icon gets its own separate storage from Safari, so a
+token only saved to `localStorage` isn't there on the icon's first cold launch. Baking the token into
+`start_url` means every launch re-authenticates from the URL itself, so it's self-healing.
 
 ## Users and login links
 

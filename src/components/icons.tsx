@@ -74,3 +74,23 @@ export function ClockIcon(props: IconProps) {
     </svg>
   )
 }
+
+export function ShareIcon(props: IconProps) {
+  return (
+    <svg {...base} width={18} height={18} {...props}>
+      <path d="M12 3v12" />
+      <path d="M8 7l4-4 4 4" />
+      <rect x="4.5" y="9.5" width="15" height="11" rx="2.5" />
+    </svg>
+  )
+}
+
+export function DownloadIcon(props: IconProps) {
+  return (
+    <svg {...base} width={18} height={18} {...props}>
+      <path d="M12 3.5v11" />
+      <path d="M7.5 10.5L12 15l4.5-4.5" />
+      <path d="M4.5 17v2a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5v-2" />
+    </svg>
+  )
+}
