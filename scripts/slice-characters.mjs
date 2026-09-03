@@ -112,5 +112,22 @@ for (const t of tiles()) {
   console.log(`  ${t.name}.png  ${box.w}x${box.h} @ ${box.x},${box.y}`)
 }
 
+// Contact sheet of the crops, so alignment is checkable in a single image.
+const names = tiles().map((t) => t.name)
+await page.setViewportSize({ width: 1200, height: 900 })
+await page.setContent(`
+  <body style="margin:0;background:#0f1115;font:12px system-ui;color:#e5e7eb">
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;padding:10px">
+      ${names.map((n) => `
+        <figure style="margin:0">
+          <img src="file://${OUT_DIR}/${n}.png" style="width:100%;display:block;border:1px solid #2a3040;border-radius:6px">
+          <figcaption style="text-align:center;padding-top:3px;color:#a3aab8">${n}</figcaption>
+        </figure>`).join('')}
+    </div>
+  </body>`)
+await page.waitForTimeout(400)
+await page.screenshot({ path: resolve(OUT_DIR, '_preview.png'), fullPage: true })
+console.log(`\nWrote ${OUT_DIR}/_preview.png — open it to check alignment.`)
+
 await browser.close()
-console.log('\nDone. Check the crops, tune GRID in this file if they are off, re-run.')
+console.log('Done. If crops are off, tune GRID at the top of this file and re-run.')

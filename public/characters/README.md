@@ -43,3 +43,10 @@ node scripts/slice-characters.mjs
 Edit the `GRID` coordinates at the top of that script to match your image
 (they're fractions of width/height, so they work at any resolution), then
 re-run until the crops line up.
+
+## Note on `source.png`
+
+`source.png` is only an input for the slicer — it is not referenced by the app.
+After slicing, move it out of `public/` (or delete it) so the full-size contact
+sheet isn't shipped to every visitor. `_preview.png` is likewise just a
+check-your-work artifact.
